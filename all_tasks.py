@@ -29,13 +29,11 @@ def create_new_user_and_display():
     headers = {
         "Authorization": token_access
     }
-    id = int(input("Desired id: "))
     name = input("Desired name: ")
     email = input("Desired email: ")
     gender = input("Your gender (male/female): ")
     status = input("Your status(active/inactive): ")
     data = {
-        "id": id,
         "name": name,
         "email": email,
         "gender": gender,
@@ -158,58 +156,54 @@ def get_user_id_by_name(username):
 def create_post(user_id):
     url = create_url("posts")
     print("\nCreate a post :\n")
-    post_id = int(input("ID : "))
     title = input("Title : ")
     body = input("Body : ")
     load = {
-        'id': post_id,
         'user_id': user_id,
         'title': title,
         'body': body
     }
     response = requests.post(url, json=load, headers=headers, verify=False)
+    print(f"The post contains next info: {response.json()}")
     return response.json()
 
 
 def create_comment(post_id, user_name):
     url = "https://gorest.co.in/public/v2/comments"
     print("\nCreate a comment :\n")
-    comment_id = int(input("ID : "))
     email = input("Email : ")
     body = input("Body : ")
     load = {
-        'id': comment_id,
         'post_id': post_id,
         'name': user_name,
         'email': email,
         'body': body
     }
     response = requests.post(url, verify=False, json=load, headers=headers)
+    print(f"The comment contains next info: {response.json()}")
     return response.json()
 
 
 def create_todo(user_id):
     url = create_url("todos")
     print("\nCreate a todo :\n")
-    todo_id = int(input("ID : "))
     todo_title = input("Title : ")
     due_on = input("Due : ")
     status = input("Status (pending/completed) : ")
     load = {
-        'id': todo_id,
         'user_id': user_id,
         'title': todo_title,
         'due_on': due_on,
         'status': status
     }
     response = requests.post(url, verify=False, json=load, headers=headers)
+    print(f"The todo contains next info: {response.json()}")
     return response.json()
 
 
 token_access = "Bearer ee493b8012fc048bbdd4c6de16e3c963aac76bb42a36430fd990cdc9b049c138"
 BASE_URL = "https://gorest.co.in/public/v2/"
 data = {
-    "id": "16032002",
     "name": "Nelu Frumuselu",
     "email": "nelu_frumuselu@yahoo.com",
     "gender": "male",
@@ -260,12 +254,12 @@ while True:
         print(show_all_users())  # First I should list all the users from endpoint /users
         user_name = input("Choose a name :")
         user_id = get_user_id_by_name(user_name)
+        if user_id:
+            new_user_post = create_post(user_id)
+            print(new_user_post)
 
-        new_user_post = create_post(user_id)
-        print(f"The post contains next info: {new_user_post}")  # I create a new post for chosen user
+            new_user_comment = create_comment(post_id=new_user_post["id"], user_name=user_name)
+            print(new_user_comment)
 
-        new_user_comment = create_comment(post_id=new_user_post["id"], user_name=user_name)
-        print(f"The comment contains next info: {new_user_comment}")  # I create a new comment for that new post
-
-        new_user_todo = create_todo(user_id=user_id)
-        print(f"The todo task contains next info: {new_user_todo}")
+            new_user_todo = create_todo(user_id=user_id)
+            print(new_user_todo)
