@@ -1,8 +1,46 @@
 import requests
 
+TOKEN_ACCESS = "Bearer ee493b8012fc048bbdd4c6de16e3c963aac76bb42a36430fd990cdc9b049c138"
+BASE_URL = "https://gorest.co.in"
+HEADERS = {
+    "Authorization": TOKEN_ACCESS
+}
+VERSION = "v2"
+ENDPOINTS = {
+    "users": "users",
+    "posts": "posts",
+    "comments": "comments",
+    "todos": "todos",
+
+}
+
 
 def create_url(endpoint):
-    return f"{BASE_URL}{endpoint}"
+    if endpoint in ENDPOINTS:
+        return f"{BASE_URL}/public/{VERSION}/{ENDPOINTS[endpoint]}"
+    raise ValueError("Unknow endpoint. For the moment we have only users/posts/comments/todos")
+
+
+def get_method(url, json=None, headers=None, params=None):
+    try:
+        response = requests.get(url, json=json, headers=headers, params=params, verify=False)
+        data = response.json()
+        print(f"Get for {url} with status : {response.status_code}")
+        return data
+    except requests.exceptions.RequestException as exception:
+        print(f"Error GET {url} : {exception}")
+        return None
+
+
+def post_method(url, json=None, headers=None, params=None):
+    try:
+        response = requests.post(url, json=json, headers=headers, params=params, verify=False)
+        data = response.json()
+        print(f"POST for {url} with status : {response.status_code}")
+        return data
+    except requests.exceptions.RequestException as exception:
+        print(f"Error POST {url} : {exception}")
+        return None
 
 
 def get_info_from_all_endpoints():
@@ -11,12 +49,10 @@ def get_info_from_all_endpoints():
     comments_url = create_url("comments")
     todos_url = create_url("todos")
 
-    list_of_resources = [users_url, posts_url,  comments_url, todos_url]
+    list_of_resources = [users_url, posts_url, comments_url, todos_url]
 
     for resource in list_of_resources:
-        response = requests.get(resource, verify=False)
-        data = response.json()
-
+        data = get_method(url=resource)
         for each_data in data:
             print(each_data)
 
@@ -27,32 +63,30 @@ def create_new_user_and_display():
     url_user_resource = create_url("users")
 
     headers = {
-        "Authorization": token_access
+        "Authorization": TOKEN_ACCESS
     }
     name = input("Desired name: ")
     email = input("Desired email: ")
     gender = input("Your gender (male/female): ")
-    status = input("Your status(active/inactive): ")
+    status = input("Your status (active/inactive): ")
     data = {
         "name": name,
         "email": email,
         "gender": gender,
         "status": status
     }
-    response_post = requests.post(url_user_resource, headers=headers, json=data, verify=False)
-
-    return response_post.json()
+    data = post_method(url=url_user_resource, headers=headers, json=data)
+    return data.json()
 
 
 def add_user_and_display_increased_total_users():
     url_users = create_url("users")
-    response = requests.get(url_users, verify=False)
-    data = response.json()
+    data = get_method(url=url_users)
     total_users = 0
     for each_data in data:
         if each_data["id"] != 0:
             total_users += 1
-    response_post = requests.post(url_users, headers=headers, json=data, verify=False)
+    response_post = post_method(url=url_users, headers=HEADERS, json=data)
     total_users += 1
     print(f"After post method we have {total_users}")
     print("--------------------")
@@ -61,63 +95,54 @@ def add_user_and_display_increased_total_users():
 def get_user_name_by_id(name):
     parameters = {'name': name}
     url_users = create_url("users")
-    response = requests.get(url_users, headers=headers, params=parameters, verify=False)
-    if response.status_code == 200:
-        data = response.json()
-        if data:
-            return data[0]['id']
-        else:
-            print(f"No user have been found with name {name}")
-            return None
+    data = get_method(url=url_users, headers=HEADERS, params=parameters)
+    if data:
+        return data[0]['id']
     else:
-        print(f"Error code : {response.status_code}")
+        print(f"No user have been found with name {name}")
         return None
 
 
 def get_active_users(status):
     parameters = {'status': status}
     url_users = create_url("users")
-    response = requests.get(url_users, headers=headers, params=parameters, verify=False)
+    data = get_method(url=url_users, headers=HEADERS, params=parameters)
     how_many_users = int(input("How many people you wanna display ? : "))
-    if response.status_code == 200:
-        data = response.json()
-        nr_users = len(data)  # I used len(data) just to prevent the case there are
-        # less than X people active/inactive
-        if nr_users < 1:
-            print("There are no users")
-            print("\n--------------")
-        else:
-            if nr_users < how_many_users and status == "active":
-                print(f"There are only {nr_users} active users ")
-            elif nr_users < how_many_users and status == "inactive":
-                print(f"There are only {nr_users} inactive users")
-            elif nr_users > how_many_users and status == "active":
-                print(f"Those {how_many_users} people active are :")
-            elif nr_users > how_many_users and status == "inactive":
-                print(f"Those {how_many_users} inactive people are :")
-
-            for user in data[:how_many_users]:
-                print(user['name'])
-            print("\n-------------")
+    nr_users = len(data)  # I used len(data) just to prevent the case there are
+    # less than X people active/inactive
+    if nr_users < 1:
+        print("There are no users")
+        print("\n--------------")
     else:
-        print(f"Error code: {response.status_code}")
+        if nr_users < how_many_users and status == "active":
+            print(f"There are only {nr_users} active users ")
+        elif nr_users < how_many_users and status == "inactive":
+            print(f"There are only {nr_users} inactive users")
+        elif nr_users > how_many_users and status == "active":
+            print(f"Those {how_many_users} people active are :")
+        elif nr_users > how_many_users and status == "inactive":
+            print(f"Those {how_many_users} inactive people are :")
+
+        for user in data[:how_many_users]:
+            print(user['name'])
+        print("\n-------------")
 
 
 def first_X_ppl_with_middle_name():
     url_users = create_url("users")
-    response = requests.get(url_users, headers=headers, verify=False)
+    data = get_method(url=url_users, headers=HEADERS)
     how_many_users = int(input("How many users you want :"))
-    if response.status_code == 200:
-        data = response.json()
-        ok = 0
-        for user in data:
-            if how_many_users >= 1:
-                if len(user['name'].split()) >= 3:  # true means that I have middle name
-                    print(user['name'])
-                    how_many_users -= 1
-                    ok = 1
-        if ok == 0:
-            print("No one have middle name")
+    ok = 0
+    for user in data:
+        if how_many_users >= 1:
+            if len(user['name'].split()) >= 3:
+                print(user['name'])
+                how_many_users -= 1
+                ok = 1
+    if ok == 0:
+        print("No one have middle name")
+
+    return None
 
 
 def show_all_users():
@@ -126,8 +151,7 @@ def show_all_users():
     :return: display all users from endpoint
     """
     url_users = create_url("users")
-    response = requests.get(url_users, verify=False)
-    data = response.json()
+    data = get_method(url=url_users)
     return [user_data['name'] for user_data in data]
 
 
@@ -139,17 +163,11 @@ def get_user_id_by_name(username):
     """
     url_users = create_url("users")
     parameters = {'name': username}
-    response = requests.get(url_users, verify=False, params=parameters)
-
-    if response.status_code == 200:
-        data = response.json()
-        if data:
-            return data[0]['id']
-        else:
-            print("User not found")
-            return None
+    data = get_method(url=url_users, params=parameters)
+    if data:
+        return data[0]['id']
     else:
-        print(f"Error code status : {response.status_code}" )
+        print("User not found")
         return None
 
 
@@ -163,9 +181,9 @@ def create_post(user_id):
         'title': title,
         'body': body
     }
-    response = requests.post(url, json=load, headers=headers, verify=False)
-    print(f"The post contains next info: {response.json()}")
-    return response.json()
+    data = post_method(url=url, json=load, headers=HEADERS)
+    print(f"The post contains next info: {data}")
+    return data
 
 
 def create_comment(post_id, user_name):
@@ -179,9 +197,9 @@ def create_comment(post_id, user_name):
         'email': email,
         'body': body
     }
-    response = requests.post(url, verify=False, json=load, headers=headers)
-    print(f"The comment contains next info: {response.json()}")
-    return response.json()
+    data = post_method(url=url, json=load, headers=HEADERS)
+    print(f"The comment contains next info: {data}")
+    return data
 
 
 def create_todo(user_id):
@@ -196,22 +214,10 @@ def create_todo(user_id):
         'due_on': due_on,
         'status': status
     }
-    response = requests.post(url, verify=False, json=load, headers=headers)
-    print(f"The todo contains next info: {response.json()}")
-    return response.json()
+    data = post_method(url=url, json=load, headers=HEADERS)
+    print(f"The todo contains next info: {data}")
+    return data
 
-
-token_access = "Bearer ee493b8012fc048bbdd4c6de16e3c963aac76bb42a36430fd990cdc9b049c138"
-BASE_URL = "https://gorest.co.in/public/v2/"
-data = {
-    "name": "Nelu Frumuselu",
-    "email": "nelu_frumuselu@yahoo.com",
-    "gender": "male",
-    "status": "active"
-}
-headers = {
-    "Authorization": token_access
-}
 
 while True:
     print("\n\n1.Create a GET request for each endpoint available (users/posts/comments/todos)\n"
@@ -242,7 +248,7 @@ while True:
         name = input("Name: ")
         print(f"User {name} have id {get_user_name_by_id(name)}")
     elif input_user == 5:
-        # Display first X  users depending their status
+        # Display first X  users depending on their status
         type_status = input("Choose type of users (active/inactive): ")
         get_active_users(type_status)
     elif input_user == 6:
@@ -256,10 +262,5 @@ while True:
         user_id = get_user_id_by_name(user_name)
         if user_id:
             new_user_post = create_post(user_id)
-            print(new_user_post)
-
             new_user_comment = create_comment(post_id=new_user_post["id"], user_name=user_name)
-            print(new_user_comment)
-
             new_user_todo = create_todo(user_id=user_id)
-            print(new_user_todo)
