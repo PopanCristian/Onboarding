@@ -21,9 +21,9 @@ def create_url(endpoint):
     raise ValueError("Unknow endpoint. For the moment we have only users/posts/comments/todos")
 
 
-def get_method(url, json=None, headers=None, params=None):
+def get_method(url, params=None):
     try:
-        response = requests.get(url, json=json, headers=headers, params=params, verify=False)
+        response = requests.get(url, headers=HEADERS, params=params, verify=False)
         data = response.json()
         print(f"Get for {url} with status : {response.status_code}")
         return data
@@ -32,9 +32,9 @@ def get_method(url, json=None, headers=None, params=None):
         return None
 
 
-def post_method(url, json=None, headers=None, params=None):
+def post_method(url, json=None, params=None):
     try:
-        response = requests.post(url, json=json, headers=headers, params=params, verify=False)
+        response = requests.post(url, json=json, headers=HEADERS, params=params, verify=False)
         data = response.json()
         print(f"POST for {url} with status : {response.status_code}")
         return data
@@ -61,10 +61,6 @@ def get_info_from_all_endpoints():
 
 def create_new_user_and_display():
     url_user_resource = create_url("users")
-
-    headers = {
-        "Authorization": TOKEN_ACCESS
-    }
     name = input("Desired name: ")
     email = input("Desired email: ")
     gender = input("Your gender (male/female): ")
@@ -75,7 +71,7 @@ def create_new_user_and_display():
         "gender": gender,
         "status": status
     }
-    data = post_method(url=url_user_resource, headers=headers, json=data)
+    data = post_method(url=url_user_resource, json=data)
     return data.json()
 
 
@@ -86,7 +82,7 @@ def add_user_and_display_increased_total_users():
     for each_data in data:
         if each_data["id"] != 0:
             total_users += 1
-    response_post = post_method(url=url_users, headers=HEADERS, json=data)
+    response_post = post_method(url=url_users, json=data)
     total_users += 1
     print(f"After post method we have {total_users}")
     print("--------------------")
@@ -95,7 +91,7 @@ def add_user_and_display_increased_total_users():
 def get_user_name_by_id(name):
     parameters = {'name': name}
     url_users = create_url("users")
-    data = get_method(url=url_users, headers=HEADERS, params=parameters)
+    data = get_method(url=url_users, params=parameters)
     if data:
         return data[0]['id']
     else:
@@ -106,7 +102,7 @@ def get_user_name_by_id(name):
 def get_active_users(status):
     parameters = {'status': status}
     url_users = create_url("users")
-    data = get_method(url=url_users, headers=HEADERS, params=parameters)
+    data = get_method(url=url_users, params=parameters)
     how_many_users = int(input("How many people you wanna display ? : "))
     nr_users = len(data)  # I used len(data) just to prevent the case there are
     # less than X people active/inactive
@@ -130,7 +126,7 @@ def get_active_users(status):
 
 def first_X_ppl_with_middle_name():
     url_users = create_url("users")
-    data = get_method(url=url_users, headers=HEADERS)
+    data = get_method(url=url_users)
     how_many_users = int(input("How many users you want :"))
     ok = 0
     for user in data:
@@ -181,7 +177,7 @@ def create_post(user_id):
         'title': title,
         'body': body
     }
-    data = post_method(url=url, json=load, headers=HEADERS)
+    data = post_method(url=url, json=load)
     print(f"The post contains next info: {data}")
     return data
 
@@ -197,7 +193,7 @@ def create_comment(post_id, user_name):
         'email': email,
         'body': body
     }
-    data = post_method(url=url, json=load, headers=HEADERS)
+    data = post_method(url=url, json=load)
     print(f"The comment contains next info: {data}")
     return data
 
@@ -214,7 +210,7 @@ def create_todo(user_id):
         'due_on': due_on,
         'status': status
     }
-    data = post_method(url=url, json=load, headers=HEADERS)
+    data = post_method(url=url, json=load)
     print(f"The todo contains next info: {data}")
     return data
 
