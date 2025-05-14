@@ -71,39 +71,25 @@ def create_new_user_and_display():
         "gender": gender,
         "status": status
     }
-    data = post_method(url=url_user_resource, json=data)
-    return data.json()
+    data_post = post_method(url=url_user_resource, json=data)
+    return data_post
 
 
-def add_user_and_display_increased_total_users():
+def is_user_count_increasing_after_adding_user():
     url_users = create_url("users")
     data = get_method(url=url_users)
-    total_users = 0
-    for each_data in data:
-        if each_data["id"] != 0:
-            total_users += 1
-    response_post = post_method(url=url_users, json=data)
-    total_users += 1
-    print(f"After post method we have {total_users}")
-    print("--------------------")
+    max_user_id = max(each_data['id'] for each_data in data)
+    new_user = create_new_user_and_display()
+    new_user_id = new_user['id']
+    if new_user_id > max_user_id:
+        return True
+    return False
 
 
-def get_user_name_by_id(name):
-    parameters = {'name': name}
-    url_users = create_url("users")
-    data = get_method(url=url_users, params=parameters)
-    if data:
-        return data[0]['id']
-    else:
-        print(f"No user have been found with name {name}")
-        return None
-
-
-def get_active_users(status):
+def display_active_users(status, how_many_users):
     parameters = {'status': status}
     url_users = create_url("users")
     data = get_method(url=url_users, params=parameters)
-    how_many_users = int(input("How many people you wanna display ? : "))
     nr_users = len(data)  # I used len(data) just to prevent the case there are
     # less than X people active/inactive
     if nr_users < 1:
@@ -114,9 +100,9 @@ def get_active_users(status):
             print(f"There are only {nr_users} active users ")
         elif nr_users < how_many_users and status == "inactive":
             print(f"There are only {nr_users} inactive users")
-        elif nr_users > how_many_users and status == "active":
+        elif nr_users >= how_many_users and status == "active":
             print(f"Those {how_many_users} people active are :")
-        elif nr_users > how_many_users and status == "inactive":
+        elif nr_users >= how_many_users and status == "inactive":
             print(f"Those {how_many_users} inactive people are :")
 
         for user in data[:how_many_users]:
@@ -124,10 +110,9 @@ def get_active_users(status):
         print("\n-------------")
 
 
-def first_X_ppl_with_middle_name():
+def display_first_number_of_users_with_middle_name(how_many_users):
     url_users = create_url("users")
     data = get_method(url=url_users)
-    how_many_users = int(input("How many users you want :"))
     ok = 0
     for user in data:
         if how_many_users >= 1:
@@ -237,19 +222,22 @@ while True:
         print(f"The new user is : {new_user}")
     elif input_user == 3:
         # Create a method to verify that after adding the new user, the total number of users has increased by 1
-        add_user_and_display_increased_total_users()
+        assert is_user_count_increasing_after_adding_user(), "New user ID is lower than max existing one"
+        print("The new user has been added with SUCCESS, the total number of users has increased!")
     elif input_user == 4:
         # Create a method that will bring a specified user name by adding a query parameter and use it to retain the
         # user ID
         name = input("Name: ")
-        print(f"User {name} have id {get_user_name_by_id(name)}")
+        print(f"User {name} have id {get_user_id_by_name(name)}")
     elif input_user == 5:
         # Display first X  users depending on their status
         type_status = input("Choose type of users (active/inactive): ")
-        get_active_users(type_status)
+        how_many_users = int(input("How many people you wanna display ? : "))
+        display_active_users(type_status, how_many_users)
     elif input_user == 6:
         # Display first X users that also have a middle name
-        first_X_ppl_with_middle_name()
+        how_many_users = int(input("How many users you want :"))
+        display_first_number_of_users_with_middle_name(how_many_users)
     elif input_user == 7:
         # For the previously added user, create a post, a comment and a ttodo.
         # Make sure the methods created at this point to be available for any other user
