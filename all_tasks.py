@@ -218,9 +218,22 @@ def is_changed_email_for_user(user_name, data):
     if id_user is None:
         return None
     url = f"{create_url('users')}/{id_user}"
-    response = patch_method(url, json=data)
-    print(f"The email {response['email']} has been updated for {user_name} user")
+    url_verification = create_url('users')
+    response_patch = patch_method(url, json=data)
+    response_get = get_method(url_verification, params=data)
+    print(f"The email {response_patch['email']} has been updated for {user_name} user")
+    print(f" Resource has been updated  -->   {response_get}")
     return True
+
+
+def display_ascending_todos(how_many_todos):
+    url = create_url("todos")
+    todos = get_method(url)
+    if todos:
+        sort_todos = sorted(todos, key=lambda todo: todo['due_on'])
+        print(sort_todos[:how_many_todos])
+        return None
+    return None
 
 
 while True:
@@ -274,13 +287,18 @@ while True:
             new_user_comment = create_comment(post_id=new_user_post["id"], user_name=user_name)
             new_user_todo = create_todo(user_id=user_id)
     elif input_user == 8:
+        # Create a method that will allow you to modify the e-mail address of the user and verify that the
+        # new e-mail address was saved
         print(show_all_users())
         user_name = input("Choose a name :")
         new_email = input("Type a valid email : ")
         parameters = {
             'email': new_email
             }
-        is_changed_email_for_user(user_name, parameters)
+        assert is_changed_email_for_user(user_name, parameters), f"Don't have any user with {user_name} name"
+        print("Goodie goodie")
 
     elif input_user == 9:
-        pass
+        # Take first 20 todos. Display them all in ascending order by due date
+        how_many_todos = int(input("How many todos you want :"))
+        display_ascending_todos(how_many_todos)
