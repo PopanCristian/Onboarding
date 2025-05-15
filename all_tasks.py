@@ -221,9 +221,11 @@ def is_changed_email_for_user(user_name, data):
     url_verification = create_url('users')
     response_patch = patch_method(url, json=data)
     response_get = get_method(url_verification, params=data)
-    print(f"The email {response_patch['email']} has been updated for {user_name} user")
-    print(f" Resource has been updated  -->   {response_get}")
-    return True
+    if data['email'] == response_get['email']:
+        print(f"The email {response_patch['email']} has been updated for {user_name} user")
+        print(f" Resource has been updated  -->   {response_get}")
+        return True
+    return False
 
 
 def display_ascending_todos(how_many_todos):
@@ -232,7 +234,6 @@ def display_ascending_todos(how_many_todos):
     if todos:
         sort_todos = sorted(todos, key=lambda todo: todo['due_on'])
         print(sort_todos[:how_many_todos])
-        return None
     return None
 
 
@@ -295,7 +296,8 @@ while True:
         parameters = {
             'email': new_email
             }
-        assert is_changed_email_for_user(user_name, parameters), f"Don't have any user with {user_name} name"
+        assert is_changed_email_for_user(user_name, parameters), (f"Don't have any user with {user_name} name "
+                                                                  f"or email was not saved")
         print("Goodie goodie")
 
     elif input_user == 9:
