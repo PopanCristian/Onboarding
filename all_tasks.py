@@ -234,7 +234,7 @@ while True:
           "7.For the previously added user, create a post, a comment and a ttodo.\n"
           "8.Modify the e-mail address of the user and verify that the new e-mail address was saved\n"
           "9.Take first 20 todos. Display them all in ascending order by due date\n")
-    input_user = int(input("Type problem's number between 1 and 7 (0 to quit): "))
+    input_user = int(input("Type problem's number between 1 and 9 (0 to quit): "))
     if input_user == 0:
         break
     elif input_user == 1:
@@ -277,7 +277,6 @@ while True:
         print(show_all_users())
         user_name = input("Choose a name :")
         new_email = input("Type a valid email : ")
-
         parameters = {
             'email': new_email
             }
