@@ -43,6 +43,19 @@ def post_method(url, json=None, params=None):
         return None
 
 
+def patch_method(url, json=None):
+    try:
+        response = requests.patch(url, headers=HEADERS, json=json, verify=False)
+        response.raise_for_status()
+        data = response.json()
+        print(f"PATCH for {url} with status : {response.status_code}")
+        return data
+
+    except requests.exceptions.RequestException as exception:
+        print(f"Error PATCH {url} : {exception}")
+        return None
+
+
 def get_info_from_all_endpoints():
     users_url = create_url("users")
     posts_url = create_url("posts")
@@ -200,6 +213,16 @@ def create_todo(user_id):
     return data
 
 
+def is_changed_email_for_user(user_name, data):
+    id_user = get_user_id_by_name(user_name)
+    if id_user is None:
+        return None
+    url = f"{create_url('users')}/{id_user}"
+    response = patch_method(url, json=data)
+    print(f"The email {response['email']} has been updated for {user_name} user")
+    return True
+
+
 while True:
     print("\n\n1.Create a GET request for each endpoint available (users/posts/comments/todos)\n"
           "2.Create new user with your desired information, display the information of the new user\n"
@@ -208,7 +231,9 @@ while True:
           "the user ID \n"
           "5.Display first active users\n"
           "6.Display first users that also have a middle name\n"
-          "7.For the previously added user, create a post, a comment and a ttodo.\n")
+          "7.For the previously added user, create a post, a comment and a ttodo.\n"
+          "8.Modify the e-mail address of the user and verify that the new e-mail address was saved\n"
+          "9.Take first 20 todos. Display them all in ascending order by due date\n")
     input_user = int(input("Type problem's number between 1 and 7 (0 to quit): "))
     if input_user == 0:
         break
@@ -248,3 +273,15 @@ while True:
             new_user_post = create_post(user_id)
             new_user_comment = create_comment(post_id=new_user_post["id"], user_name=user_name)
             new_user_todo = create_todo(user_id=user_id)
+    elif input_user == 8:
+        print(show_all_users())
+        user_name = input("Choose a name :")
+        new_email = input("Type a valid email : ")
+
+        parameters = {
+            'email': new_email
+            }
+        is_changed_email_for_user(user_name, parameters)
+
+    elif input_user == 9:
+        pass
