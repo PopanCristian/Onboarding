@@ -7,9 +7,8 @@ def run(playwright : Playwright):
     page = browser.new_page()
 
     page.goto("https://demoqa.com/")
-    page.locator("div.card-body >> text=Elements").click()
-    page.locator("span.text >> text=Text Box").click()
-
+    page.locator("//div[contains(@class, 'top-card') and .//h5[text()='Elements']]").click()
+    page.locator("//li[contains(@class, 'btn-light') and .//span[text()='Text Box']]").click()
     full_name = page.locator("//input[@id='userName']").fill("Connor Mcgregor")
     email = page.locator("//input[@id='userEmail']").fill("connor_mcgregor@yahoo.com")
     current_adress = page.locator("//textarea[@id='currentAddress']").fill("Ireland")
