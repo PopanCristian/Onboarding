@@ -119,4 +119,8 @@ class TestClass:
             "Excel File.doc"]
         expand_locator = self.page.locator("//span[@class='rct-title']")
         expect(expand_locator).to_have_text(list_expected)
-        print("There are all the items !")
+        print("\nThere are all the items !")
+        self.page.locator("//div[@class='rct-options']/"
+                          "button[contains(@class, 'rct-option-collapse-all')]").click()
+        expect(expand_locator).to_have_text(list_expected[0])
+        print("The collapse button working fine !")
