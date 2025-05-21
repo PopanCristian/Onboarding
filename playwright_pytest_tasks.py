@@ -7,10 +7,8 @@ CURRENT_ADDRESS = 'Ireland'
 PERMANENT_ADDRESS = 'Around the globe'
 URL = "https://demoqa.com/"
 DIV_OUTPUT_FRAME_selector = "div[contains(@class,'col-md-12 col-sm-1')]"
-EXPAND_BUTTON_LOCATOR = "//div[@class='rct-options']/button[contains(@class, 'rct-option-expand-all')]"
-EXPAND_TITLES_LOCATOR = "//span[@class='rct-title']"
-COLLAPSE_BUTTON_LOCATOR = "//div[@class='rct-options']/button[contains(@class, 'rct-option-collapse-all')]"
-COLLAPSE_TITLSE_LOCATOR = "//span[@class='rct-title']"
+EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR = "//span[@class='rct-title']"
+
 
 # def run(playwright: Playwright):
 #     browser = playwright.chromium.launch(headless=False, slow_mo=10)
@@ -78,11 +76,16 @@ class TestClass:
     def select_element_button_left_panel(self, button_name):
         self.page.locator(f"//li[contains(@class, 'btn-light') and .//span[text()='{button_name}']]").click()
 
-    def get_ui_titles_after_clicking_button(self, button_locator,titles_locator):
-        self.page.locator(button_locator).click()
-        list_of_titles_locator = self.page.locator(titles_locator).all()
-        return [title.inner_text() for title in list_of_titles_locator]
+    def get_ui_titles_after_clicking_button(self, action_name):
+        try:
+            button_selector = f"//div[@class='rct-options']/button[contains(@class, 'rct-option-{action_name}-all')]"
+            self.page.locator(button_selector).click()
+            list_of_titles_locator = self.page.locator(EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR).all()
+            return [title.inner_text() for title in list_of_titles_locator]
 
+        except Exception as exception:
+            print(f"Failed to get ui titles after clicking button : {action_name} -> {exception}")
+            return None
 
     def test_verify_text_box_view(self):
         self.select_card_body("Elements")
@@ -134,13 +137,12 @@ class TestClass:
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Check Box")
 
-        titles = self.get_ui_titles_after_clicking_button(EXPAND_BUTTON_LOCATOR, EXPAND_TITLES_LOCATOR )
+        titles_expand = self.get_ui_titles_after_clicking_button("expand")
 
-        assert titles == list_expected_expand, "There are not the same elements for EXPAND BUTTON"
+        assert titles_expand == list_expected_expand, "There are not the same elements for EXPAND BUTTON"
         print("\nThere are all the items !")
 
-        collapse_items_list_titles = self.get_ui_titles_after_clicking_button(COLLAPSE_BUTTON_LOCATOR,
-                                                                              COLLAPSE_TITLSE_LOCATOR)
+        collapse_items_list_titles = self.get_ui_titles_after_clicking_button("collapse")
         assert collapse_items_list_titles == list_expected_collapse, ("There are not"
                                                                       " the same elements for COLLAPSE BUTTON")
         print("The collapse button working fine !")
