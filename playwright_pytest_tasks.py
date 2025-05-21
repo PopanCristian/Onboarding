@@ -8,6 +8,7 @@ PERMANENT_ADDRESS = 'Around the globe'
 URL = "https://demoqa.com/"
 DIV_OUTPUT_FRAME_selector = "div[contains(@class,'col-md-12 col-sm-1')]"
 EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR = "//span[@class='rct-title']"
+PATH_DOCUMENTS = "Home>Documents>WorkSpace"
 
 
 # def run(playwright: Playwright):
@@ -62,7 +63,7 @@ class TestClass:
     @pytest.fixture(autouse=True, scope="function")
     def open_close_browser(self):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False)
+            browser = p.chromium.launch(headless=False, slow_mo=1000)
             self.page = browser.new_page()
             self.page.goto(URL)
 
@@ -86,6 +87,17 @@ class TestClass:
         except Exception as exception:
             print(f"Failed to get ui titles after clicking button : {action_name} -> {exception}")
             return None
+
+    def search_document_in_path(self, titles):
+        for title in titles:
+            self.page.locator(f"//span[@class='rct-text' and .//span[@class='rct-title' and text()='{title}']]/"
+                              "button[@title='Toggle']").click()
+        check_box = self.page.locator("//label[@for='tree-node-angular']/span[@class='rct-checkbox']")
+        check_box.click()
+        if check_box.is_checked():
+            output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
+            return [each_output.inner_text() for each_output in output]
+        return None
 
     def test_verify_text_box_view(self):
         self.select_card_body("Elements")
@@ -146,3 +158,10 @@ class TestClass:
         assert collapse_items_list_titles == list_expected_collapse, ("There are not"
                                                                       " the same elements for COLLAPSE BUTTON")
         print("The collapse button working fine !")
+
+    def test_task3(self):
+        self.select_card_body("Elements")
+        self.select_element_button_left_panel("Check Box")
+        list_titles = PATH_DOCUMENTS.split(">")
+        assert ['angular'] in self.search_document_in_path(list_titles), "The title was not found in the output"
+        print("The title was found in the output")
