@@ -8,7 +8,15 @@ PERMANENT_ADDRESS = 'Around the globe'
 URL = "https://demoqa.com/"
 DIV_OUTPUT_FRAME_selector = "div[contains(@class,'col-md-12 col-sm-1')]"
 EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR = "//span[@class='rct-title']"
-PATH_DOCUMENTS = "Home>Documents>WorkSpace"
+DICT_DOCUMENTS = {
+    'root': ['Home'],
+    'Home': ['Desktop', 'Documents', 'Downloads'],
+    'Desktop': ['Notes', 'Commands'],
+    'Documents': ['WorkSpace', 'Office'],
+    'Downloads': ['Word File.doc', 'Excel File.doc'],
+    'WorkSpace': ['React', 'Angular', 'Veu'],
+    'Office': ['Public', 'Private', 'Classified', 'General']
+}
 
 
 # def run(playwright: Playwright):
@@ -63,7 +71,7 @@ class TestClass:
     @pytest.fixture(autouse=True, scope="function")
     def open_close_browser(self):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False, slow_mo=1000)
+            browser = p.chromium.launch(headless=False, slow_mo=300)
             self.page = browser.new_page()
             self.page.goto(URL)
 
@@ -88,15 +96,20 @@ class TestClass:
             print(f"Failed to get ui titles after clicking button : {action_name} -> {exception}")
             return None
 
-    def search_document_in_path(self, titles):
-        for title in titles:
-            self.page.locator(f"//span[@class='rct-text' and .//span[@class='rct-title' and text()='{title}']]/"
-                              "button[@title='Toggle']").click()
-        check_box = self.page.locator("//label[@for='tree-node-angular']/span[@class='rct-checkbox']")
-        check_box.click()
-        if check_box.is_checked():
-            output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
-            return [each_output.inner_text() for each_output in output]
+    def search_document_in_path(self, dict_titles, destination_doc):
+        for parent_doc, list_children_doc in dict_titles.items():
+            if destination_doc in list_children_doc:
+                check_box = self.page.locator(f"//label[@for='tree-node-{destination_doc.lower()}']/"
+                                              f"span[@class='rct-checkbox']")
+                check_box.click()
+                if check_box.is_checked():
+                    output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
+                    return [each_output.inner_text().lower() for each_output in output]
+            else:
+                for each_key in list_children_doc:
+                    self.page.locator(f"//span[@class='rct-text' and .//span[@class='rct-title' and text()='{each_key}']]/"
+                                      "button[@title='Toggle']").click()
+
         return None
 
     def test_verify_text_box_view(self):
@@ -162,6 +175,7 @@ class TestClass:
     def test_task3(self):
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Check Box")
-        list_titles = PATH_DOCUMENTS.split(">")
-        assert ['angular'] in self.search_document_in_path(list_titles), "The title was not found in the output"
+        search_input_doc = input("Choose a document to search : ")
+        assert search_input_doc.lower() in self.search_document_in_path(DICT_DOCUMENTS, search_input_doc), \
+            "The title was not found in the output"
         print("The title was found in the output")
