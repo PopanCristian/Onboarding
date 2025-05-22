@@ -1,4 +1,6 @@
-from playwright.sync_api import sync_playwright, expect
+
+
+from playwright.sync_api import sync_playwright
 import pytest
 
 FULL_NAME = 'Connor McGregor'
@@ -9,13 +11,13 @@ URL = "https://demoqa.com/"
 DIV_OUTPUT_FRAME_selector = "div[contains(@class,'col-md-12 col-sm-1')]"
 EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR = "//span[@class='rct-title']"
 DICT_DOCUMENTS = {
-    'root': ['Home'],
-    'Home': ['Desktop', 'Documents', 'Downloads'],
-    'Desktop': ['Notes', 'Commands'],
-    'Documents': ['WorkSpace', 'Office'],
-    'Downloads': ['Word File.doc', 'Excel File.doc'],
-    'WorkSpace': ['React', 'Angular', 'Veu'],
-    'Office': ['Public', 'Private', 'Classified', 'General']
+    'root': ['home'],
+    'Home': ['desktop', 'documents', 'downloads'],
+    'Desktop': ['notes', 'commands'],
+    'Documents': ['workspace', 'office'],
+    'Downloads': ['wordFile', 'excelFile'],
+    'WorkSpace': ['react', 'angular', 'veu'],
+    'Office': ['public', 'private', 'classified', 'general']
 }
 
 
@@ -96,10 +98,14 @@ class TestClass:
             print(f"Failed to get ui titles after clicking button : {action_name} -> {exception}")
             return None
 
+    def format_input_for_output(self, input_text):
+        destination_doc_formated_list = input_text.replace(".doc", '').split()
+        return destination_doc_formated_list[0].lower() + destination_doc_formated_list[1]
+
     def search_document_in_path(self, dict_titles, destination_doc):
         for parent_doc, list_children_doc in dict_titles.items():
             if destination_doc in list_children_doc:
-                check_box = self.page.locator(f"//label[@for='tree-node-{destination_doc.lower()}']/"
+                check_box = self.page.locator(f"//label[@for='tree-node-{destination_doc}']/"
                                               f"span[@class='rct-checkbox']")
                 check_box.click()
                 if check_box.is_checked():
@@ -107,9 +113,9 @@ class TestClass:
                     return [each_output.inner_text().lower() for each_output in output]
             else:
                 for each_key in list_children_doc:
-                    self.page.locator(f"//span[@class='rct-text' and .//span[@class='rct-title' and text()='{each_key}']]/"
+                    self.page.locator(f"//span[@class='rct-text' and .//span[@class='rct-title' and"
+                                      f" text()='{each_key}']]/"
                                       "button[@title='Toggle']").click()
-
         return None
 
     def test_verify_text_box_view(self):
@@ -176,6 +182,7 @@ class TestClass:
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Check Box")
         search_input_doc = input("Choose a document to search : ")
-        assert search_input_doc.lower() in self.search_document_in_path(DICT_DOCUMENTS, search_input_doc), \
+        format_input = self.format_input_for_output(search_input_doc)
+        assert format_input in self.search_document_in_path(DICT_DOCUMENTS, format_input), \
             "The title was not found in the output"
         print("The title was found in the output")
