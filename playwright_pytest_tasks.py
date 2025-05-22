@@ -1,5 +1,3 @@
-
-
 from playwright.sync_api import sync_playwright
 import pytest
 
@@ -73,7 +71,7 @@ class TestClass:
     @pytest.fixture(autouse=True, scope="function")
     def open_close_browser(self):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False, slow_mo=300)
+            browser = p.chromium.launch(headless=False, slow_mo=1000)
             self.page = browser.new_page()
             self.page.goto(URL)
 
@@ -99,23 +97,39 @@ class TestClass:
             return None
 
     def format_input_for_output(self, input_text):
-        destination_doc_formated_list = input_text.replace(".doc", '').split()
-        return destination_doc_formated_list[0].lower() + destination_doc_formated_list[1]
+        documents = input_text.split(">")
+        yield documents  # to iterate in documents until chosen one
+        if documents[-1].endswith(".doc"):
+            documents[-1] = documents[-1][:-4].split()
+            documents[-1][0] = documents[-1][0].lower()
+            documents[-1][0] = documents[-1][0] + documents[-1][1]
+            aux = documents[-1][0]
+            documents[-1].pop()
+            documents[-1].pop()
+            documents.remove([])
+            documents = [doc.lower() for doc in documents]
+            documents.append(aux)
+        yield documents  # locate checkbox for last document
 
-    def search_document_in_path(self, dict_titles, destination_doc):
-        for parent_doc, list_children_doc in dict_titles.items():
-            if destination_doc in list_children_doc:
-                check_box = self.page.locator(f"//label[@for='tree-node-{destination_doc}']/"
-                                              f"span[@class='rct-checkbox']")
-                check_box.click()
-                if check_box.is_checked():
-                    output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
-                    return [each_output.inner_text().lower() for each_output in output]
+    def search_document_in_path(self, list_of_documents_to_iterate, list_of_documents, last_doc):
+        print(f" ---->    {list_of_documents_to_iterate}")
+        for each_doc in list_of_documents_to_iterate:
+            if each_doc == last_doc:
+                continue
             else:
-                for each_key in list_children_doc:
-                    self.page.locator(f"//span[@class='rct-text' and .//span[@class='rct-title' and"
-                                      f" text()='{each_key}']]/"
-                                      "button[@title='Toggle']").click()
+                self.page.locator(f"//span[@class='rct-text' and .//span[@class='rct-title' and"
+                                  f" text()='{each_doc}']]/"
+                                  "button[@title='Toggle']").click()
+        if last_doc[0].isupper():
+            check_box = self.page.locator(f"//label[@for='tree-node-{last_doc.lower()}']/"
+                                          f"span[@class='rct-checkbox']")
+        else:
+            check_box = self.page.locator(f"//label[@for='tree-node-{last_doc}']/"
+                                          f"span[@class='rct-checkbox']")
+        check_box.click()
+        if check_box.is_checked():
+            output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
+            return [each_output.inner_text() for each_output in output]
         return None
 
     def test_verify_text_box_view(self):
@@ -181,8 +195,16 @@ class TestClass:
     def test_task3(self):
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Check Box")
-        search_input_doc = input("Choose a document to search : ")
-        format_input = self.format_input_for_output(search_input_doc)
-        assert format_input in self.search_document_in_path(DICT_DOCUMENTS, format_input), \
-            "The title was not found in the output"
+        search_input_doc = input("Choose a path (Example : Document1>Document2>Document3... ) : ")
+        generator = self.format_input_for_output(search_input_doc)
+        first_list_with_docs_formated = next(generator)
+        second_list_with_docs_formated = next(generator)
+        last_doc = second_list_with_docs_formated[-1]
+        if last_doc[0].isupper():
+            assert last_doc.lower() in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
+                "The title was not found in the output"
+        else:
+            assert last_doc in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
+                "The title was not found in the output"
         print("The title was found in the output")
+
