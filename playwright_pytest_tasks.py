@@ -8,16 +8,7 @@ PERMANENT_ADDRESS = 'Around the globe'
 URL = "https://demoqa.com/"
 DIV_OUTPUT_FRAME_selector = "div[contains(@class,'col-md-12 col-sm-1')]"
 EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR = "//span[@class='rct-title']"
-DICT_DOCUMENTS = {
-    'root': ['home'],
-    'Home': ['desktop', 'documents', 'downloads'],
-    'Desktop': ['notes', 'commands'],
-    'Documents': ['workspace', 'office'],
-    'Downloads': ['wordFile', 'excelFile'],
-    'WorkSpace': ['react', 'angular', 'veu'],
-    'Office': ['public', 'private', 'classified', 'general']
-}
-
+TITLE_SELECTOR = "//span[@class='rct-text' and .//span[@class='rct-title' and text()='{}']]"
 
 # def run(playwright: Playwright):
 #     browser = playwright.chromium.launch(headless=False, slow_mo=10)
@@ -71,7 +62,7 @@ class TestClass:
     @pytest.fixture(autouse=True, scope="function")
     def open_close_browser(self):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False, slow_mo=1000)
+            browser = p.chromium.launch(headless=False, slow_mo=800)
             self.page = browser.new_page()
             self.page.goto(URL)
 
@@ -131,6 +122,21 @@ class TestClass:
             output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
             return [each_output.inner_text() for each_output in output]
         return None
+
+    def search_document_and_enable_last_title(self, list_titles):
+        if len(list_titles) > 1:
+            for title in list_titles[:-1]:
+                self.page.locator(TITLE_SELECTOR.format(title) + "/button[@title='Toggle']").click()
+
+        check_box = self.page.locator(TITLE_SELECTOR.format(list_titles[-1]) + "//span[@class='rct-checkbox']")
+        check_box.check()
+        if check_box.is_checked():
+            return True
+        return False
+
+    def get_output_ui(self):
+        output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
+        return [each_output.inner_text() for each_output in output]
 
     def test_verify_text_box_view(self):
         self.select_card_body("Elements")
@@ -192,19 +198,49 @@ class TestClass:
                                                                       " the same elements for COLLAPSE BUTTON")
         print("The collapse button working fine !")
 
-    def test_task3(self):
+    def test_verify_document_in_output_checked(self):
+        TITLES_MENU_TO_OUTPUT_MAPPED_DICT = {
+            'Word File.doc': 'wordFile',
+            'Excel File.doc': 'excelFile',
+        }
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Check Box")
         search_input_doc = input("Choose a path (Example : Document1>Document2>Document3... ) : ")
-        generator = self.format_input_for_output(search_input_doc)
-        first_list_with_docs_formated = next(generator)
-        second_list_with_docs_formated = next(generator)
-        last_doc = second_list_with_docs_formated[-1]
-        if last_doc[0].isupper():
-            assert last_doc.lower() in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
-                "The title was not found in the output"
-        else:
-            assert last_doc in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
-                "The title was not found in the output"
-        print("The title was found in the output")
+        list_search_input_doc = search_input_doc.split(">")
+        is_checked = self.search_document_and_enable_last_title(list_search_input_doc)
+        assert is_checked, "I can not checked the box for last title"
+        last_title_formated = list_search_input_doc[-1].lower() if ".doc" not in list_search_input_doc[-1] else\
+            TITLES_MENU_TO_OUTPUT_MAPPED_DICT[list_search_input_doc[-1]]
+        assert last_title_formated in self.get_output_ui(), "The title was not found in the output"
+        # generator = self.format_input_for_output(search_input_doc)
+        # first_list_with_docs_formated = next(generator)
+        # second_list_with_docs_formated = next(generator)
+        # last_doc = second_list_with_docs_formated[-1]
+        # if last_doc[0].isupper():
+        #     assert last_doc.lower() in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
+        #         "The title was not found in the output"
+        # else:
+        #     assert last_doc in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
+        #         "The title was not found in the output"
+        # print("The title was found in the output")
+
+    def test_verify_radio_buttons(self):
+        self.select_card_body("Elements")
+        self.select_element_button_left_panel("Radio Button")
+        RADIO_BUTTON_SELECTOR = "//div[contains(@class,'custom-control-inline')]/input[@id='{}']"
+        RADIO_BUTTON_OUTPUT_SELECTOR = "p[@class='mt-3']/span[text() = '{}']"
+        yes_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('yesRadio'))
+
+        if yes_radio_button.is_visible():
+            yes_radio_button.check(force=True)
+        assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Yes")), "I can't click Yes button"
+
+        impressive_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('impressiveRadio'))
+        if impressive_radio_button.is_visible():
+            impressive_radio_button.check(force=True)
+        assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Impressive")), "I can't click Impressive button"
+
+        no_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('noRadio'))
+        assert no_radio_button.is_visible(), " NO Button is invisible "
+
 
