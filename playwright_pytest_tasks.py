@@ -244,4 +244,20 @@ class TestClass:
         no_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('noRadio'))
         assert no_radio_button.is_disabled(), " NO Button is enabled "
 
+    def test_verify_click_buttons(self):
+        self.select_card_body("Elements")
+        self.select_element_button_left_panel("Buttons")
+
+        self.page.locator("#doubleClickBtn").click(click_count=2)
+        output = self.page.locator("#doubleClickMessage").inner_text()
+        assert output == "You have done a double click", "Something went wrong with double click button"
+
+        self.page.locator("#rightClickBtn").click(button="right")
+        output = self.page.locator("#rightClickMessage").inner_text()
+        assert output == "You have done a right click", "Something went wrong with right click button"
+
+        self.page.locator("button[class='btn btn-primary']:text-is('Click Me')").click(button="left")
+        output = self.page.locator("#dynamicClickMessage").inner_text()
+        assert output == "You have done a dynamic click", "Something went wrong with left click button"
+
 
