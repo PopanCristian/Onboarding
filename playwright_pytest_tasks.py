@@ -241,6 +241,6 @@ class TestClass:
         assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Impressive")), "I can't click Impressive button"
 
         no_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('noRadio'))
-        assert no_radio_button.is_visible(), " NO Button is invisible "
+        assert no_radio_button.is_disabled(), " NO Button is enabled "
 
 
