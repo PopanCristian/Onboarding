@@ -228,17 +228,18 @@ class TestClass:
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Radio Button")
         RADIO_BUTTON_SELECTOR = "//div[contains(@class,'custom-control-inline')]/input[@id='{}']"
-        RADIO_BUTTON_OUTPUT_SELECTOR = "p[@class='mt-3']/span[text() = '{}']"
+        RADIO_BUTTON_OUTPUT_SELECTOR = "//p[@class='mt-3']/span[text() = '{}']"
         yes_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('yesRadio'))
 
         if yes_radio_button.is_visible():
             yes_radio_button.check(force=True)
-        assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Yes")), "I can't click Yes button"
+        assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Yes")).is_visible(), "I can't click Yes button"
 
         impressive_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('impressiveRadio'))
         if impressive_radio_button.is_visible():
             impressive_radio_button.check(force=True)
-        assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Impressive")), "I can't click Impressive button"
+        assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Impressive")).is_visible(), \
+            "I can't click Impressive button"
 
         no_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('noRadio'))
         assert no_radio_button.is_disabled(), " NO Button is enabled "
