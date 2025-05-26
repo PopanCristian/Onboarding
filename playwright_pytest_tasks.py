@@ -1,4 +1,4 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright,expect
 import pytest
 
 FULL_NAME = 'Connor McGregor'
@@ -260,4 +260,16 @@ class TestClass:
         output = self.page.locator("#dynamicClickMessage").inner_text()
         assert output == "You have done a dynamic click", "Something went wrong with left click button"
 
+    def test_dynamic_proprieties(self):
+        self.select_card_body("Elements")
+        self.select_element_button_left_panel("Dynamic Properties")
 
+        button_enable_after_locator = self.page.locator("#enableAfter")
+        button_color_change_locator = self.page.locator("#colorChange")
+        button_visible_after_locator = self.page.locator("#visibleAfter")
+
+        expect(button_enable_after_locator).to_be_enabled(timeout=5000)
+        button_enable_after_locator.click()
+        expect(button_visible_after_locator).to_be_visible(timeout=5000)
+        button_visible_after_locator.click()
+        expect(button_color_change_locator).to_have_css("color", "rgb(220, 53, 69)", timeout=5000)
