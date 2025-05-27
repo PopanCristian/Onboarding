@@ -9,7 +9,22 @@ URL = "https://demoqa.com/"
 DIV_OUTPUT_FRAME_selector = "div[contains(@class,'col-md-12 col-sm-1')]"
 EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR = "//span[@class='rct-title']"
 TITLE_SELECTOR = "//span[@class='rct-text' and .//span[@class='rct-title' and text()='{}']]"
-
+EXPECTED_CONTENT = {
+            "firstName": "Cristian",
+            "lastName": "Popan",
+            "email": "abracadabra@yahoo.com",
+            "age": "23",
+            "salary": "1234",
+            "departament": "QA"
+        }
+EXPECTED_CONTENT_EDIT = {
+            "firstName": "Cristian1",
+            "lastName": "Popan1",
+            "email": "abracadabra1@yahoo.com",
+            "age": "231",
+            "salary": "12341",
+            "departament": "QA1"
+        }
 
 # def run(playwright: Playwright):
 #     browser = playwright.chromium.launch(headless=False, slow_mo=10)
@@ -172,31 +187,73 @@ class TestClass:
         list_of_rows = self.extract_rows_from_table(table_rows)
         assert EXPECTED_CONTENT == list_of_rows, "The content of the table incongruous"
 
-    def add_content_in_table(self):
+    def add_content_in_table(self, row):
         button_add_locator = self.page.locator("button[id='addNewRecordButton']")
         button_add_locator.click()
-        self.page.locator("input[placeholder='First Name']").fill("Cristian")
-        self.page.locator("input[placeholder='Last Name']").fill("Popan")
-        self.page.locator("input[id='userEmail']").fill("abracadabra@yahoo.com")
-        self.page.locator("input[id='age']").fill("23")
-        self.page.locator("input[id='salary']").fill("1234")
-        self.page.locator("input[id='department']").fill("QA")
-        self.page.locator("button[id='submit']")
+        self.page.locator("input[placeholder='First Name']").fill(row["firstName"])
+        self.page.locator("input[placeholder='Last Name']").fill(row["lastName"])
+        self.page.locator("input[id='userEmail']").fill(row["email"])
+        self.page.locator("input[id='age']").fill(row["age"])
+        self.page.locator("input[id='salary']").fill(row["salary"])
+        self.page.locator("input[id='department']").fill(row["departament"])
+        self.page.locator("button[id='submit']").click()
         return None
 
     def is_added_content_in_table(self, table_rows):
-        EXPECTED_CONTENT = [{
-            "firstName": "Cristian",
-            "lastName": "Popan",
-            "email": "abracadabra@example.com",
-            "age": "23",
-            "salary": "1234",
-            "departament": "QA"
-        }]
-        self.add_content_in_table()
-        list_of_rows = self.extract_rows_from_table(table_rows) # aici nu imi apare linia pe care am adaugat-o, apar doar datele vechi
-        print(f"\n\n\n{list_of_rows}\n\n\n")
+        self.add_content_in_table(row=EXPECTED_CONTENT)
+        list_of_rows = self.extract_rows_from_table(table_rows)
         assert EXPECTED_CONTENT in list_of_rows, "The content hasn't been added in table"
+
+    def delete_row(self, list_of_rows, row_to_be_deleted, table):
+        for index in range(len(list_of_rows)):
+            ok = True
+            for key, value in row_to_be_deleted.items():
+                if list_of_rows[index].get(key) != value:
+                    ok = False
+                    break
+            if ok:
+                row_locator = table.nth(index)
+                delete_button = row_locator.locator("span[title='Delete']")
+                delete_button.click()
+                return True
+        return False
+
+    def is_row_deleted_from_table(self, table_rows):
+        list_of_rows = self.extract_rows_from_table(table_rows)
+        assert self.delete_row(list_of_rows, row_to_be_deleted=EXPECTED_CONTENT, table=table_rows), ("The chosen row "
+                                                                                                     "for deleting "
+                                                                                                     "doesn't  exist")
+        updated_list_of_rows = self.extract_rows_from_table(table_rows)
+        assert updated_list_of_rows != list_of_rows, "The row hasn't been deleted from the table"
+
+    def edit_row(self, list_of_rows, edit_row, table):
+        for index in range(len(list_of_rows)):
+            ok = True
+            for key, value in edit_row.items():
+                if list_of_rows[index].get(key) != value:
+                    ok = False
+                    break
+            if ok:
+                row_locator = table.nth(index)
+                edit_button = row_locator.locator("span[title='Edit']")
+                edit_button.click()
+                self.page.locator("input[placeholder='First Name']").fill(edit_row["firstName"])
+                self.page.locator("input[placeholder='Last Name']").fill(edit_row["lastName"])
+                self.page.locator("input[id='userEmail']").fill(edit_row["email"])
+                self.page.locator("input[id='age']").fill(edit_row["age"])
+                self.page.locator("input[id='salary']").fill(edit_row["salary"])
+                self.page.locator("input[id='department']").fill(edit_row["departament"])
+                self.page.locator("button[id='submit']").click()
+                return True
+        return False
+
+    def is_row_edited(self, table_rows):
+        list_of_rows = self.extract_rows_from_table(table_rows)
+        print(f"\n\n\n{list_of_rows}\n\n\n")
+        assert self.edit_row(list_of_rows, edit_row=EXPECTED_CONTENT_EDIT, table=table_rows), ("The chosen row for editing "
+                                                                                      "doesn't exist")
+        updated_list_of_rows = self.extract_rows_from_table(table_rows)
+        assert updated_list_of_rows == list_of_rows, "The row hasn't been edited from the table"
 
     def test_verify_text_box_view(self):
         self.select_card_body("Elements")
@@ -338,5 +395,7 @@ class TestClass:
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Web Tables")
         table_rows_locator = self.page.locator("div.rt-tbody div.rt-tr-group")
-        self.is_content_in_table(table_rows_locator)  # verificat continut
+        self.is_content_in_table(table_rows_locator)
         self.is_added_content_in_table(table_rows_locator)
+        self.is_row_edited(table_rows_locator)
+        self.is_row_deleted_from_table(table_rows_locator)
