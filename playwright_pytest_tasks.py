@@ -1,4 +1,4 @@
-from playwright.sync_api import sync_playwright,expect
+from playwright.sync_api import sync_playwright, expect
 import pytest
 
 FULL_NAME = 'Connor McGregor'
@@ -9,6 +9,7 @@ URL = "https://demoqa.com/"
 DIV_OUTPUT_FRAME_selector = "div[contains(@class,'col-md-12 col-sm-1')]"
 EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR = "//span[@class='rct-title']"
 TITLE_SELECTOR = "//span[@class='rct-text' and .//span[@class='rct-title' and text()='{}']]"
+
 
 # def run(playwright: Playwright):
 #     browser = playwright.chromium.launch(headless=False, slow_mo=10)
@@ -138,6 +139,65 @@ class TestClass:
         output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
         return [each_output.inner_text() for each_output in output]
 
+    def extract_rows_from_table(self, table_rows):
+        list_of_rows = []
+        for index in range(table_rows.count()):
+            row = table_rows.nth(index)
+            cell = row.locator("div[role='gridcell']")
+            row_datas = {
+                "firstName": cell.nth(0).inner_text(),
+                "lastName": cell.nth(1).inner_text(),
+                "age": cell.nth(2).inner_text(),
+                "email": cell.nth(3).inner_text(),
+                "salary": cell.nth(4).inner_text(),
+                "departament": cell.nth(5).inner_text()
+            }
+            list_of_rows.append(row_datas)
+
+        for index in reversed(range(len(list_of_rows))):
+            row = list_of_rows[index]
+            if all(dicty == "\xa0" for dicty in row.values()):
+                list_of_rows.pop(index)
+
+        return list_of_rows
+
+    def is_content_in_table(self, table_rows):
+        EXPECTED_CONTENT = [
+            {'firstName': 'Cierra', 'lastName': 'Vega', 'age': '39', 'email': 'cierra@example.com', 'salary': '10000',
+             'departament': 'Insurance'},
+            {'firstName': 'Alden', 'lastName': 'Cantrell', 'age': '45', 'email': 'alden@example.com', 'salary': '12000',
+             'departament': 'Compliance'},
+            {'firstName': 'Kierra', 'lastName': 'Gentry', 'age': '29', 'email': 'kierra@example.com', 'salary': '2000',
+             'departament': 'Legal'}]
+        list_of_rows = self.extract_rows_from_table(table_rows)
+        assert EXPECTED_CONTENT == list_of_rows, "The content of the table incongruous"
+
+    def add_content_in_table(self):
+        button_add_locator = self.page.locator("button[id='addNewRecordButton']")
+        button_add_locator.click()
+        self.page.locator("input[placeholder='First Name']").fill("Cristian")
+        self.page.locator("input[placeholder='Last Name']").fill("Popan")
+        self.page.locator("input[id='userEmail']").fill("abracadabra@yahoo.com")
+        self.page.locator("input[id='age']").fill("23")
+        self.page.locator("input[id='salary']").fill("1234")
+        self.page.locator("input[id='department']").fill("QA")
+        self.page.locator("button[id='submit']")
+        return None
+
+    def is_added_content_in_table(self, table_rows):
+        EXPECTED_CONTENT = [{
+            "firstName": "Cristian",
+            "lastName": "Popan",
+            "email": "abracadabra@example.com",
+            "age": "23",
+            "salary": "1234",
+            "departament": "QA"
+        }]
+        self.add_content_in_table()
+        list_of_rows = self.extract_rows_from_table(table_rows) # aici nu imi apare linia pe care am adaugat-o, apar doar datele vechi
+        print(f"\n\n\n{list_of_rows}\n\n\n")
+        assert EXPECTED_CONTENT in list_of_rows, "The content hasn't been added in table"
+
     def test_verify_text_box_view(self):
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Text Box")
@@ -209,7 +269,7 @@ class TestClass:
         list_search_input_doc = search_input_doc.split(">")
         is_checked = self.search_document_and_enable_last_title(list_search_input_doc)
         assert is_checked, "I can not checked the box for last title"
-        last_title_formated = list_search_input_doc[-1].lower() if ".doc" not in list_search_input_doc[-1] else\
+        last_title_formated = list_search_input_doc[-1].lower() if ".doc" not in list_search_input_doc[-1] else \
             TITLES_MENU_TO_OUTPUT_MAPPED_DICT[list_search_input_doc[-1]]
         assert last_title_formated in self.get_output_ui(), "The title was not found in the output"
         # generator = self.format_input_for_output(search_input_doc)
@@ -273,3 +333,10 @@ class TestClass:
         expect(button_visible_after_locator).to_be_visible(timeout=5000)
         button_visible_after_locator.click()
         expect(button_color_change_locator).to_have_css("color", "rgb(220, 53, 69)", timeout=5000)
+
+    def test_web_table_content_page(self):
+        self.select_card_body("Elements")
+        self.select_element_button_left_panel("Web Tables")
+        table_rows_locator = self.page.locator("div.rt-tbody div.rt-tr-group")
+        self.is_content_in_table(table_rows_locator)  # verificat continut
+        self.is_added_content_in_table(table_rows_locator)
