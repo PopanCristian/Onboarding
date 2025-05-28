@@ -10,21 +10,28 @@ DIV_OUTPUT_FRAME_selector = "div[contains(@class,'col-md-12 col-sm-1')]"
 EXPAND_COLLAPSE_TITLES_LOCATOR_SELECTOR = "//span[@class='rct-title']"
 TITLE_SELECTOR = "//span[@class='rct-text' and .//span[@class='rct-title' and text()='{}']]"
 EXPECTED_CONTENT = {
-            "firstName": "Cristian",
-            "lastName": "Popan",
-            "email": "abracadabra@yahoo.com",
-            "age": "23",
-            "salary": "1234",
-            "departament": "QA"
+            "First Name": "Cristian",
+            "Last Name": "Popan",
+            "Email": "abracadabra@yahoo.com",
+            "Age": "23",
+            "Salary": "1234",
+            "Departament": "QA"
         }
 EXPECTED_CONTENT_EDIT = {
-            "firstName": "Cristian1",
-            "lastName": "Popan1",
-            "email": "abracadabra1@yahoo.com",
-            "age": "231",
-            "salary": "12341",
-            "departament": "QA1"
+            "First Name": "Cristian1",
+            "Last Name": "Popan1",
+            "Email": "abracadabra1@yahoo.com",
+            "Age": "231",
+            "Salary": "12341",
+            "Departament": "QA1"
         }
+EXPECTED_CONTENT_LIST = [
+            {'First Name': 'Cierra', 'Last Name': 'Vega', 'Age': '39', 'Email': 'cierra@example.com', 'Salary': '10000',
+             'Departament': 'Insurance'},
+            {'First Name': 'Alden', 'Last Name': 'Cantrell', 'Age': '45', 'Email': 'alden@example.com', 'Salary': '12000',
+             'Departament': 'Compliance'},
+            {'First Name': 'Kierra', 'Last Name': 'Gentry', 'Age': '29', 'Email': 'kierra@example.com', 'Salary': '2000',
+             'Departament': 'Legal'}]
 
 # def run(playwright: Playwright):
 #     browser = playwright.chromium.launch(headless=False, slow_mo=10)
@@ -154,18 +161,37 @@ class TestClass:
         output = self.page.locator("//div[@id='result']/span[@class='text-success']").all()
         return [each_output.inner_text() for each_output in output]
 
-    def extract_rows_from_table(self, table_rows):
+    def configure_proprieties(self, row_data):
+        field_selectors = {
+            "First Name": "input[placeholder='First Name']",
+            "Last Name": "input[placeholder='Last Name']",
+            "Email": "input[id='userEmail']",
+            "Age": "input[id='age']",
+            "Salary": "input[id='salary']",
+            "Departament": "input[id='department']"
+        }
+        for key, value in row_data.items():
+            selector = field_selectors.get(key)
+            if selector:
+                self.page.locator(selector).fill(value)
+        return None
+
+    def get_table_rows_locator(self):
+        return self.page.locator("div.rt-tbody div.rt-tr-group")
+
+    def extract_rows_from_table(self):
         list_of_rows = []
+        table_rows = self.get_table_rows_locator()
         for index in range(table_rows.count()):
             row = table_rows.nth(index)
             cell = row.locator("div[role='gridcell']")
             row_datas = {
-                "firstName": cell.nth(0).inner_text(),
-                "lastName": cell.nth(1).inner_text(),
-                "age": cell.nth(2).inner_text(),
-                "email": cell.nth(3).inner_text(),
-                "salary": cell.nth(4).inner_text(),
-                "departament": cell.nth(5).inner_text()
+                "First Name": cell.nth(0).inner_text(),
+                "Last Name": cell.nth(1).inner_text(),
+                "Age": cell.nth(2).inner_text(),
+                "Email": cell.nth(3).inner_text(),
+                "Salary": cell.nth(4).inner_text(),
+                "Departament": cell.nth(5).inner_text()
             }
             list_of_rows.append(row_datas)
 
@@ -176,35 +202,24 @@ class TestClass:
 
         return list_of_rows
 
-    def is_content_in_table(self, table_rows):
-        EXPECTED_CONTENT = [
-            {'firstName': 'Cierra', 'lastName': 'Vega', 'age': '39', 'email': 'cierra@example.com', 'salary': '10000',
-             'departament': 'Insurance'},
-            {'firstName': 'Alden', 'lastName': 'Cantrell', 'age': '45', 'email': 'alden@example.com', 'salary': '12000',
-             'departament': 'Compliance'},
-            {'firstName': 'Kierra', 'lastName': 'Gentry', 'age': '29', 'email': 'kierra@example.com', 'salary': '2000',
-             'departament': 'Legal'}]
-        list_of_rows = self.extract_rows_from_table(table_rows)
-        assert EXPECTED_CONTENT == list_of_rows, "The content of the table incongruous"
+    def verify_content_in_table(self, table_row):
+        list_of_rows = self.extract_rows_from_table()
+        assert table_row == list_of_rows, "The content of the table incongruous"
 
-    def add_content_in_table(self, row):
+    def add_content_in_table(self, table_row):
         button_add_locator = self.page.locator("button[id='addNewRecordButton']")
         button_add_locator.click()
-        self.page.locator("input[placeholder='First Name']").fill(row["firstName"])
-        self.page.locator("input[placeholder='Last Name']").fill(row["lastName"])
-        self.page.locator("input[id='userEmail']").fill(row["email"])
-        self.page.locator("input[id='age']").fill(row["age"])
-        self.page.locator("input[id='salary']").fill(row["salary"])
-        self.page.locator("input[id='department']").fill(row["departament"])
+        self.configure_proprieties(table_row)
         self.page.locator("button[id='submit']").click()
         return None
 
-    def is_added_content_in_table(self, table_rows):
-        self.add_content_in_table(row=EXPECTED_CONTENT)
-        list_of_rows = self.extract_rows_from_table(table_rows)
+    def verify_added_content_in_table(self):
+        self.add_content_in_table(EXPECTED_CONTENT)
+        list_of_rows = self.extract_rows_from_table()
+        print(list_of_rows)
         assert EXPECTED_CONTENT in list_of_rows, "The content hasn't been added in table"
 
-    def delete_row(self, list_of_rows, row_to_be_deleted, table):
+    def delete_row(self, list_of_rows, row_to_be_deleted, table_row):
         for index in range(len(list_of_rows)):
             ok = True
             for key, value in row_to_be_deleted.items():
@@ -212,24 +227,25 @@ class TestClass:
                     ok = False
                     break
             if ok:
-                row_locator = table.nth(index)
+                row_locator = table_row.nth(index)
                 delete_button = row_locator.locator("span[title='Delete']")
                 delete_button.click()
                 return True
         return False
 
-    def is_row_deleted_from_table(self, table_rows):
-        list_of_rows = self.extract_rows_from_table(table_rows)
-        assert self.delete_row(list_of_rows, row_to_be_deleted=EXPECTED_CONTENT, table=table_rows), ("The chosen row "
+    def verify_row_deleted_from_table(self):
+        table_rows = self.get_table_rows_locator()
+        list_of_rows = self.extract_rows_from_table()
+        assert self.delete_row(list_of_rows, row_to_be_deleted=EXPECTED_CONTENT, table_row=table_rows), ("The chosen row "
                                                                                                      "for deleting "
                                                                                                      "doesn't  exist")
-        updated_list_of_rows = self.extract_rows_from_table(table_rows)
+        updated_list_of_rows = self.extract_rows_from_table()
         assert updated_list_of_rows != list_of_rows, "The row hasn't been deleted from the table"
 
-    def edit_row(self, list_of_rows, edit_row, table):
+    def edit_row(self, list_of_rows, row_to_be_edited, table):
         for index in range(len(list_of_rows)):
             ok = True
-            for key, value in edit_row.items():
+            for key, value in row_to_be_edited.items():
                 if list_of_rows[index].get(key) != value:
                     ok = False
                     break
@@ -237,22 +253,18 @@ class TestClass:
                 row_locator = table.nth(index)
                 edit_button = row_locator.locator("span[title='Edit']")
                 edit_button.click()
-                self.page.locator("input[placeholder='First Name']").fill(edit_row["firstName"])
-                self.page.locator("input[placeholder='Last Name']").fill(edit_row["lastName"])
-                self.page.locator("input[id='userEmail']").fill(edit_row["email"])
-                self.page.locator("input[id='age']").fill(edit_row["age"])
-                self.page.locator("input[id='salary']").fill(edit_row["salary"])
-                self.page.locator("input[id='department']").fill(edit_row["departament"])
+                self.configure_proprieties(row_to_be_edited)
                 self.page.locator("button[id='submit']").click()
                 return True
         return False
 
-    def is_row_edited(self, table_rows):
-        list_of_rows = self.extract_rows_from_table(table_rows)
-        print(f"\n\n\n{list_of_rows}\n\n\n")
-        assert self.edit_row(list_of_rows, edit_row=EXPECTED_CONTENT_EDIT, table=table_rows), ("The chosen row for editing "
+    def verify_row_edited(self):
+        list_of_rows = self.extract_rows_from_table()
+        table_rows = self.get_table_rows_locator()
+        print(f"asta e mesajul {self.edit_row(list_of_rows, row_to_be_edited=EXPECTED_CONTENT_EDIT, table=table_rows)}")
+        assert self.edit_row(list_of_rows, row_to_be_edited=EXPECTED_CONTENT_EDIT, table=table_rows), ("The chosen row for editing "
                                                                                       "doesn't exist")
-        updated_list_of_rows = self.extract_rows_from_table(table_rows)
+        updated_list_of_rows = self.extract_rows_from_table()
         assert updated_list_of_rows == list_of_rows, "The row hasn't been edited from the table"
 
     def test_verify_text_box_view(self):
@@ -394,8 +406,7 @@ class TestClass:
     def test_web_table_content_page(self):
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Web Tables")
-        table_rows_locator = self.page.locator("div.rt-tbody div.rt-tr-group")
-        self.is_content_in_table(table_rows_locator)
-        self.is_added_content_in_table(table_rows_locator)
-        self.is_row_edited(table_rows_locator)
-        self.is_row_deleted_from_table(table_rows_locator)
+        self.verify_content_in_table(EXPECTED_CONTENT_LIST)
+        self.verify_added_content_in_table()
+        self.verify_row_edited()
+        self.verify_row_deleted_from_table()
