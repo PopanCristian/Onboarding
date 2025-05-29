@@ -25,13 +25,8 @@ EXPECTED_CONTENT_EDIT = {
             "Salary": "12341",
             "Departament": "QA1"
         }
-EXPECTED_CONTENT_LIST = [
-            {'First Name': 'Cierra', 'Last Name': 'Vega', 'Age': '39', 'Email': 'cierra@example.com', 'Salary': '10000',
-             'Departament': 'Insurance'},
-            {'First Name': 'Alden', 'Last Name': 'Cantrell', 'Age': '45', 'Email': 'alden@example.com', 'Salary': '12000',
-             'Departament': 'Compliance'},
-            {'First Name': 'Kierra', 'Last Name': 'Gentry', 'Age': '29', 'Email': 'kierra@example.com', 'Salary': '2000',
-             'Departament': 'Legal'}]
+EXPECTED_CONTENT_ROW = {'First Name': 'Cierra', 'Last Name': 'Vega', 'Age': '39', 'Email': 'cierra@example.com', 'Salary': '10000',
+             'Departament': 'Insurance'}
 
 # def run(playwright: Playwright):
 #     browser = playwright.chromium.launch(headless=False, slow_mo=10)
@@ -406,7 +401,8 @@ class TestClass:
     def test_web_table_content_page(self):
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Web Tables")
-        # self.verify_content_in_table(EXPECTED_CONTENT_LIST)
+        self.verify_content_in_table(EXPECTED_CONTENT_ROW)
         self.verify_added_content_in_table(EXPECTED_CONTENT)
         self.verify_row_edited()
-        # self.verify_row_deleted_from_table()
+        self.verify_added_content_in_table(EXPECTED_CONTENT)
+        self.verify_row_deleted_from_table()
