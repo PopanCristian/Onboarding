@@ -15,18 +15,18 @@ EXPECTED_CONTENT = {
             "Email": "abracadabra@yahoo.com",
             "Age": "23",
             "Salary": "1234",
-            "Departament": "QA"
+            "Department": "QA"
         }
 EXPECTED_CONTENT_EDIT = {
             "First Name": "Cristian1",
             "Last Name": "Popan1",
             "Email": "abracadabra1@yahoo.com",
-            "Age": "231",
+            "Age": "24",
             "Salary": "12341",
-            "Departament": "QA1"
+            "Department": "QA1"
         }
 EXPECTED_CONTENT_ROW = {'First Name': 'Cierra', 'Last Name': 'Vega', 'Age': '39', 'Email': 'cierra@example.com', 'Salary': '10000',
-             'Departament': 'Insurance'}
+             'Department': 'Insurance'}
 
 # def run(playwright: Playwright):
 #     browser = playwright.chromium.launch(headless=False, slow_mo=10)
@@ -157,19 +157,15 @@ class TestClass:
         return [each_output.inner_text() for each_output in output]
 
     def configure_proprieties(self, row_data):
-        field_selectors = {
-            "First Name": "input[placeholder='First Name']",
-            "Last Name": "input[placeholder='Last Name']",
-            "Email": "input[id='userEmail']",
-            "Age": "input[id='age']",
-            "Salary": "input[id='salary']",
-            "Departament": "input[id='department']"
-        }
+        form_general_selector = "form[id='userForm']"
+        field_selector = "div[class*='row']"
         for key, value in row_data.items():
-            selector = field_selectors.get(key)
-            if selector:
-                self.page.locator(selector).fill(value)
-        return None
+            current_field_selector = form_general_selector + f" {field_selector}:has(label:text-is('{key}'))"
+
+            if self.page.locator(current_field_selector + " input[type='text']").is_visible():
+                self.page.locator(current_field_selector + " input[type='text']").fill(value)
+            else:
+                print("Can't identify data")
 
     def get_table_rows_locator(self):
         return self.page.locator("div.rt-tbody div.rt-tr-group")
@@ -186,7 +182,7 @@ class TestClass:
                 "Age": cell.nth(2).inner_text(),
                 "Email": cell.nth(3).inner_text(),
                 "Salary": cell.nth(4).inner_text(),
-                "Departament": cell.nth(5).inner_text()
+                "Department": cell.nth(5).inner_text()
             }
             list_of_rows.append(row_datas)
 
@@ -194,7 +190,7 @@ class TestClass:
             row = list_of_rows[index]
             if all(dicty == "\xa0" for dicty in row.values()):
                 list_of_rows.pop(index)
-
+        print(f"Found all this rows: {list_of_rows}")
         return list_of_rows
 
     def verify_content_in_table(self, table_row):
@@ -208,12 +204,11 @@ class TestClass:
         self.page.locator("button[id='submit']").click()
         return None
 
-    def verify_added_content_in_table(self, table_row):
+    def add_row_in_table(self, table_row):
         self.add_content_in_table(table_row)
-        list_of_rows = self.extract_rows_from_table()
-        assert table_row in list_of_rows, "The content hasn't been added in table"
 
-    def delete_row(self, list_of_rows, row_to_be_deleted, table_row):
+    def delete_row(self, list_of_rows, row_to_be_deleted):
+        table_row = self.get_table_rows_locator()
         for index in range(len(list_of_rows)):
             ok = True
             for key, value in row_to_be_deleted.items():
@@ -227,16 +222,15 @@ class TestClass:
                 return True
         return False
 
-    def verify_row_deleted_from_table(self):
-        table_rows = self.get_table_rows_locator()
+    def verify_row_deleted_from_table(self, table_row):
         list_of_rows = self.extract_rows_from_table()
-        assert self.delete_row(list_of_rows, row_to_be_deleted=EXPECTED_CONTENT, table_row=table_rows), ("The chosen row "
-                                                                                                     "for deleting "
-                                                                                                     "doesn't  exist")
+        assert self.delete_row(list_of_rows, row_to_be_deleted=table_row), ("The chosen row for deleting "
+                                                                            "doesn't  exist")
         updated_list_of_rows = self.extract_rows_from_table()
-        assert updated_list_of_rows != list_of_rows, "The row hasn't been deleted from the table"
+        assert table_row not in updated_list_of_rows, "The row hasn't been deleted from the table"
 
-    def edit_row(self, list_of_rows, row_before_to_be_edited, row_to_be_edited, table):
+    def edit_row(self, list_of_rows, row_before_to_be_edited, row_to_be_edited):
+        table = self.get_table_rows_locator()
         for index in range(len(list_of_rows)):
             ok = True
             for key, value in row_before_to_be_edited.items():
@@ -249,18 +243,15 @@ class TestClass:
                 edit_button.click()
                 self.configure_proprieties(row_to_be_edited)
                 self.page.locator("button[id='submit']").click()
-                print(f"asta e dupa edit ! :::: {self.extract_rows_from_table()}")
                 return True
         return False
 
-    def verify_row_edited(self):
+    def verify_row_edited(self, current_row, edited_row):
         list_of_rows = self.extract_rows_from_table()
-        table_rows = self.get_table_rows_locator()
-        assert self.edit_row(list_of_rows, row_before_to_be_edited=EXPECTED_CONTENT,
-                             row_to_be_edited=EXPECTED_CONTENT_EDIT, table=table_rows), ("The chosen row for editing "
-                                                                                      "doesn't exist")
+        assert self.edit_row(list_of_rows, row_before_to_be_edited=current_row,
+                             row_to_be_edited=edited_row), ("The chosen row for editing doesn't exist")
         updated_list_of_rows = self.extract_rows_from_table()
-        assert updated_list_of_rows != list_of_rows, "The row hasn't been edited from the table"
+        assert current_row not in updated_list_of_rows, "The row hasn't been edited from the table"
 
     def test_verify_text_box_view(self):
         self.select_card_body("Elements")
@@ -401,8 +392,14 @@ class TestClass:
     def test_web_table_content_page(self):
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Web Tables")
+
         self.verify_content_in_table(EXPECTED_CONTENT_ROW)
-        self.verify_added_content_in_table(EXPECTED_CONTENT)
-        self.verify_row_edited()
-        self.verify_added_content_in_table(EXPECTED_CONTENT)
-        self.verify_row_deleted_from_table()
+
+        self.add_row_in_table(EXPECTED_CONTENT)
+        self.verify_content_in_table(EXPECTED_CONTENT)
+
+        self.verify_row_edited(EXPECTED_CONTENT, EXPECTED_CONTENT_EDIT)
+        self.verify_content_in_table(EXPECTED_CONTENT_EDIT)
+
+        self.add_row_in_table(EXPECTED_CONTENT)
+        self.verify_row_deleted_from_table(EXPECTED_CONTENT)
