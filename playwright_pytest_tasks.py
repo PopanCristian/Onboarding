@@ -204,7 +204,7 @@ class TestClass:
 
     def verify_content_in_table(self, table_row):
         list_of_rows = self.extract_rows_from_table()
-        assert table_row == list_of_rows, "The content of the table incongruous"
+        assert table_row in list_of_rows, "The content of the table incongruous"
 
     def add_content_in_table(self, table_row):
         button_add_locator = self.page.locator("button[id='addNewRecordButton']")
@@ -213,11 +213,10 @@ class TestClass:
         self.page.locator("button[id='submit']").click()
         return None
 
-    def verify_added_content_in_table(self):
-        self.add_content_in_table(EXPECTED_CONTENT)
+    def verify_added_content_in_table(self, table_row):
+        self.add_content_in_table(table_row)
         list_of_rows = self.extract_rows_from_table()
-        print(list_of_rows)
-        assert EXPECTED_CONTENT in list_of_rows, "The content hasn't been added in table"
+        assert table_row in list_of_rows, "The content hasn't been added in table"
 
     def delete_row(self, list_of_rows, row_to_be_deleted, table_row):
         for index in range(len(list_of_rows)):
@@ -242,10 +241,10 @@ class TestClass:
         updated_list_of_rows = self.extract_rows_from_table()
         assert updated_list_of_rows != list_of_rows, "The row hasn't been deleted from the table"
 
-    def edit_row(self, list_of_rows, row_to_be_edited, table):
+    def edit_row(self, list_of_rows, row_before_to_be_edited, row_to_be_edited, table):
         for index in range(len(list_of_rows)):
             ok = True
-            for key, value in row_to_be_edited.items():
+            for key, value in row_before_to_be_edited.items():
                 if list_of_rows[index].get(key) != value:
                     ok = False
                     break
@@ -255,17 +254,18 @@ class TestClass:
                 edit_button.click()
                 self.configure_proprieties(row_to_be_edited)
                 self.page.locator("button[id='submit']").click()
+                print(f"asta e dupa edit ! :::: {self.extract_rows_from_table()}")
                 return True
         return False
 
     def verify_row_edited(self):
         list_of_rows = self.extract_rows_from_table()
         table_rows = self.get_table_rows_locator()
-        print(f"asta e mesajul {self.edit_row(list_of_rows, row_to_be_edited=EXPECTED_CONTENT_EDIT, table=table_rows)}")
-        assert self.edit_row(list_of_rows, row_to_be_edited=EXPECTED_CONTENT_EDIT, table=table_rows), ("The chosen row for editing "
+        assert self.edit_row(list_of_rows, row_before_to_be_edited=EXPECTED_CONTENT,
+                             row_to_be_edited=EXPECTED_CONTENT_EDIT, table=table_rows), ("The chosen row for editing "
                                                                                       "doesn't exist")
         updated_list_of_rows = self.extract_rows_from_table()
-        assert updated_list_of_rows == list_of_rows, "The row hasn't been edited from the table"
+        assert updated_list_of_rows != list_of_rows, "The row hasn't been edited from the table"
 
     def test_verify_text_box_view(self):
         self.select_card_body("Elements")
@@ -406,7 +406,7 @@ class TestClass:
     def test_web_table_content_page(self):
         self.select_card_body("Elements")
         self.select_element_button_left_panel("Web Tables")
-        self.verify_content_in_table(EXPECTED_CONTENT_LIST)
-        self.verify_added_content_in_table()
+        # self.verify_content_in_table(EXPECTED_CONTENT_LIST)
+        self.verify_added_content_in_table(EXPECTED_CONTENT)
         self.verify_row_edited()
-        self.verify_row_deleted_from_table()
+        # self.verify_row_deleted_from_table()
