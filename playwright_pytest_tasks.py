@@ -1,3 +1,5 @@
+from time import sleep
+
 from playwright.sync_api import sync_playwright, expect
 import pytest
 
@@ -27,6 +29,20 @@ EXPECTED_CONTENT_EDIT = {
         }
 EXPECTED_CONTENT_ROW = {'First Name': 'Cierra', 'Last Name': 'Vega', 'Age': '39', 'Email': 'cierra@example.com', 'Salary': '10000',
              'Department': 'Insurance'}
+EXPECTED_CONTENT_FORM = {
+    "Name": {
+            "First Name": "Cristian",
+            "Last Name": "Popan"
+            },
+    "Email": "abracadabra@yahoo.com",
+    "Gender": "Male",
+    "Mobile": "0777777777",
+    'Date of Birth': False,
+    'Subjects': 'Maths',
+    'Current Address': 'This is my address',
+    'Picture': False,
+    "Hobbies": ["Sports", "Reading" , "Music"],
+}
 
 # def run(playwright: Playwright):
 #     browser = playwright.chromium.launch(headless=False, slow_mo=10)
@@ -80,7 +96,7 @@ class TestClass:
     @pytest.fixture(autouse=True, scope="function")
     def open_close_browser(self):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False, slow_mo=800)
+            browser = p.chromium.launch(headless=False, slow_mo=1000)
             self.page = browser.new_page()
             self.page.goto(URL)
 
@@ -160,12 +176,72 @@ class TestClass:
         form_general_selector = "form[id='userForm']"
         field_selector = "div[class*='row']"
         for key, value in row_data.items():
-            current_field_selector = form_general_selector + f" {field_selector}:has(label:text-is('{key}'))"
+            if value is False:
+                continue
 
-            if self.page.locator(current_field_selector + " input[type='text']").is_visible():
-                self.page.locator(current_field_selector + " input[type='text']").fill(value)
+            current_field_selector = form_general_selector + f" {field_selector}:has(*:text-is('{key}'))"
+            # form[id = 'userForm'] div[class *='row'] div:has(input[placeholder = 'Last Name'])
+
+            if self.page.locator(current_field_selector + " div[class *= auto-complete]").first.is_visible():
+                auto_complete_locator = self.page.locator(current_field_selector)
+                auto_complete_locator.locator("input").fill(value)
+                auto_complete_locator.locator(f"div[class*='auto-complete__option']:text-is('{value}')").click(force=True)
+                # self.page.locator(current_field_selector + " input").fill(value)
+                # self.page.locator(current_field_selector + f" div[class*='auto-complete__option']:text-is('{value}')").click()
+
+            elif self.page.locator(current_field_selector).locator("input[type='text'],textarea").first.is_visible():
+                if key == "Name":
+                    first_name_locator = current_field_selector + " div:has(input[placeholder='First Name']) input"
+                    second_name_locator = current_field_selector + " div:has(input[placeholder='Last Name']) input"
+                    self.page.locator(first_name_locator).fill(value['First Name'])
+                    self.page.locator(second_name_locator).fill(value['Last Name'])
+                else:
+                    self.page.locator(current_field_selector).locator("input[type='text'],textarea").fill(value)
+                    print("----------")
+
+            elif self.page.locator(current_field_selector + " div[class *= radio]").first.is_visible():
+                radio_selector = current_field_selector + f" div[class*=custom-radio]:has(input[value='{value}'])"
+                if self.page.locator(radio_selector).is_visible():
+                    self.page.locator(radio_selector).click()
+
+            elif self.page.locator(current_field_selector + " div[class *= checkbox]").first.is_visible():
+                if isinstance(value, str):
+                    checkbox_selector = current_field_selector + f" div[class *= checkbox]:has(label:has-text('{value}'))"
+                    self.page.locator(checkbox_selector + " input").check(force=True)
+
+                elif isinstance(value, list):
+                    for item in value:
+                        checkbox_selector = current_field_selector + f" div[class *= checkbox]:has(label:has-text('{item}'))"
+                        self.page.locator(checkbox_selector + " input").check(force=True)
+
             else:
-                print("Can't identify data")
+                print(f"Can't identify data for this field : {current_field_selector}")
+
+        self.page.locator("button[id='submit']").click()
+
+            # elif self.page.locator(current_field_selector).is_visible() and key == 'Current Address':
+            #     self.page.locator(current_field_selector + f" textarea[placeholder='Current Address']").fill(value)
+            #
+            # elif self.page.locator(current_field_selector).is_visible() and key == 'Subjects':
+            #     self.page.locator(current_field_selector + f" div:has(input[#subjectsInput])").fill(value)
+            #     self.page.locator(current_field_selector + f" div[class*='auto-complete__option']:text-is('{value}')").click()
+            #
+            # elif key == 'Hobbies':
+            #     checkbox_locator = self.page.locator(current_field_selector + " input[type='checkbox']")
+            #     count_checkboxes = checkbox_locator.count()
+            #     for index in range(count_checkboxes):
+            #         checkbox = checkbox_locator.nth(index)
+            #         if checkbox.is_visible():
+            #             if type(value) is list:
+            #                 for each_box_nr in range(1,len(value)):
+            #                     self.page.locator(current_field_selector + f" input[id='hobbies-checkbox-{each_box_nr}']").click()
+            #
+            # elif key == 'Gender':
+            #     radio_selector = form_general_selector + f" {field_selector} div[class*=custom-radio]:has(input[value='{value}'])"
+            #     if self.page.locator(radio_selector).is_visible():
+            #         self.page.locator(radio_selector).click()
+
+
 
     def get_table_rows_locator(self):
         return self.page.locator("div.rt-tbody div.rt-tr-group")
@@ -253,153 +329,158 @@ class TestClass:
         updated_list_of_rows = self.extract_rows_from_table()
         assert current_row not in updated_list_of_rows, "The row hasn't been edited from the table"
 
-    def test_verify_text_box_view(self):
-        self.select_card_body("Elements")
-        self.select_element_button_left_panel("Text Box")
-        self.page.locator("//input[@id='userName']").fill(FULL_NAME)
-        self.page.locator("//input[@id='userEmail']").fill(EMAIL)
-        self.page.locator("//textarea[@id='currentAddress']").fill(CURRENT_ADDRESS)
-        self.page.locator("//textarea[@id='permanentAddress']").fill(PERMANENT_ADDRESS)
+    # def test_verify_text_box_view(self):
+    #     self.select_card_body("Elements")
+    #     self.select_element_button_left_panel("Text Box")
+    #     self.page.locator("//input[@id='userName']").fill(FULL_NAME)
+    #     self.page.locator("//input[@id='userEmail']").fill(EMAIL)
+    #     self.page.locator("//textarea[@id='currentAddress']").fill(CURRENT_ADDRESS)
+    #     self.page.locator("//textarea[@id='permanentAddress']").fill(PERMANENT_ADDRESS)
+    #
+    #     self.page.locator("//button[@id='submit']").click()
+    #
+    #     output_full_name_ui = self.page.locator(f"//{DIV_OUTPUT_FRAME_selector}/"
+    #                                             "p[@id='name']").inner_text().replace("Name:", "")
+    #     output_email_ui = self.page.locator(f"//{DIV_OUTPUT_FRAME_selector}/"
+    #                                         "p[@id='email']").inner_text().replace("Email:", "")
+    #     output_current_address_ui = self.page.locator(f"//{DIV_OUTPUT_FRAME_selector}/"
+    #                                                   "p[@id='currentAddress']").inner_text().replace(
+    #         "Current Address :", "")
+    #     output_permanent_address_ui = (self.page.locator(f"//{DIV_OUTPUT_FRAME_selector}"
+    #                                                      "/p[@id='permanentAddress']").inner_text().replace(
+    #         "Permananet "
+    #         "Address :", ""))
+    #
+    #     initial_list = [FULL_NAME, EMAIL, CURRENT_ADDRESS, PERMANENT_ADDRESS]
+    #     output_list = [output_full_name_ui, output_email_ui, output_current_address_ui, output_permanent_address_ui]
+    #     same_data = lambda: initial_list == output_list
+    #     assert same_data(), "They are not the same"
+    #     print("They are the same !")
+    #
+    # def test_verify_expand_collapse_buttons(self):
+    #     list_expected_expand = ["Home",
+    #                             "Desktop",
+    #                             "Notes",
+    #                             "Commands",
+    #                             "Documents",
+    #                             "WorkSpace",
+    #                             "React",
+    #                             "Angular",
+    #                             "Veu",
+    #                             "Office",
+    #                             "Public",
+    #                             "Private",
+    #                             "Classified",
+    #                             "General",
+    #                             "Downloads",
+    #                             "Word File.doc",
+    #                             "Excel File.doc"]
+    #     list_expected_collapse = ["Home"]
+    #     self.select_card_body("Elements")
+    #     self.select_element_button_left_panel("Check Box")
+    #
+    #     titles_expand = self.get_ui_titles_after_clicking_button("expand")
+    #
+    #     assert titles_expand == list_expected_expand, "There are not the same elements for EXPAND BUTTON"
+    #     print("\nThere are all the items !")
+    #
+    #     collapse_items_list_titles = self.get_ui_titles_after_clicking_button("collapse")
+    #     assert collapse_items_list_titles == list_expected_collapse, ("There are not"
+    #                                                                   " the same elements for COLLAPSE BUTTON")
+    #     print("The collapse button working fine !")
+    #
+    # def test_verify_document_in_output_checked(self):
+    #     TITLES_MENU_TO_OUTPUT_MAPPED_DICT = {
+    #         'Word File.doc': 'wordFile',
+    #         'Excel File.doc': 'excelFile',
+    #     }
+    #     self.select_card_body("Elements")
+    #     self.select_element_button_left_panel("Check Box")
+    #     search_input_doc = input("Choose a path (Example : Document1>Document2>Document3... ) : ")
+    #     list_search_input_doc = search_input_doc.split(">")
+    #     is_checked = self.search_document_and_enable_last_title(list_search_input_doc)
+    #     assert is_checked, "I can not checked the box for last title"
+    #     last_title_formated = list_search_input_doc[-1].lower() if ".doc" not in list_search_input_doc[-1] else \
+    #         TITLES_MENU_TO_OUTPUT_MAPPED_DICT[list_search_input_doc[-1]]
+    #     assert last_title_formated in self.get_output_ui(), "The title was not found in the output"
+    #     # generator = self.format_input_for_output(search_input_doc)
+    #     # first_list_with_docs_formated = next(generator)
+    #     # second_list_with_docs_formated = next(generator)
+    #     # last_doc = second_list_with_docs_formated[-1]
+    #     # if last_doc[0].isupper():
+    #     #     assert last_doc.lower() in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
+    #     #         "The title was not found in the output"
+    #     # else:
+    #     #     assert last_doc in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
+    #     #         "The title was not found in the output"
+    #     # print("The title was found in the output")
+    #
+    # def test_verify_radio_buttons(self):
+    #     self.select_card_body("Elements")
+    #     self.select_element_button_left_panel("Radio Button")
+    #     RADIO_BUTTON_SELECTOR = "//div[contains(@class,'custom-control-inline')]/input[@id='{}']"
+    #     RADIO_BUTTON_OUTPUT_SELECTOR = "//p[@class='mt-3']/span[text() = '{}']"
+    #     yes_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('yesRadio'))
+    #
+    #     if yes_radio_button.is_visible():
+    #         yes_radio_button.check(force=True)
+    #     assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Yes")).is_visible(), "I can't click Yes button"
+    #
+    #     impressive_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('impressiveRadio'))
+    #     if impressive_radio_button.is_visible():
+    #         impressive_radio_button.check(force=True)
+    #     assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Impressive")).is_visible(), \
+    #         "I can't click Impressive button"
+    #
+    #     no_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('noRadio'))
+    #     assert no_radio_button.is_disabled(), " NO Button is enabled "
+    #
+    # def test_verify_click_buttons(self):
+    #     self.select_card_body("Elements")
+    #     self.select_element_button_left_panel("Buttons")
+    #
+    #     self.page.locator("#doubleClickBtn").click(click_count=2)
+    #     output = self.page.locator("#doubleClickMessage").inner_text()
+    #     assert output == "You have done a double click", "Something went wrong with double click button"
+    #
+    #     self.page.locator("#rightClickBtn").click(button="right")
+    #     output = self.page.locator("#rightClickMessage").inner_text()
+    #     assert output == "You have done a right click", "Something went wrong with right click button"
+    #
+    #     self.page.locator("button[class='btn btn-primary']:text-is('Click Me')").click(button="left")
+    #     output = self.page.locator("#dynamicClickMessage").inner_text()
+    #     assert output == "You have done a dynamic click", "Something went wrong with left click button"
+    #
+    # def test_dynamic_proprieties(self):
+    #     self.select_card_body("Elements")
+    #     self.select_element_button_left_panel("Dynamic Properties")
+    #
+    #     button_enable_after_locator = self.page.locator("#enableAfter")
+    #     button_color_change_locator = self.page.locator("#colorChange")
+    #     button_visible_after_locator = self.page.locator("#visibleAfter")
+    #
+    #     expect(button_enable_after_locator).to_be_enabled(timeout=5000)
+    #     button_enable_after_locator.click()
+    #     expect(button_visible_after_locator).to_be_visible(timeout=5000)
+    #     button_visible_after_locator.click()
+    #     expect(button_color_change_locator).to_have_css("color", "rgb(220, 53, 69)", timeout=5000)
+    #
+    # def test_web_table_content_page(self):
+    #     self.select_card_body("Elements")
+    #     self.select_element_button_left_panel("Web Tables")
+    #
+    #     self.verify_content_in_table(EXPECTED_CONTENT_ROW)
+    #
+    #     self.add_row_in_table(EXPECTED_CONTENT)
+    #     self.verify_content_in_table(EXPECTED_CONTENT)
+    #
+    #     self.verify_row_edited(EXPECTED_CONTENT, EXPECTED_CONTENT_EDIT)
+    #     self.verify_content_in_table(EXPECTED_CONTENT_EDIT)
+    #
+    #     self.add_row_in_table(EXPECTED_CONTENT)
+    #     self.verify_row_deleted_from_table(EXPECTED_CONTENT)
 
-        self.page.locator("//button[@id='submit']").click()
-
-        output_full_name_ui = self.page.locator(f"//{DIV_OUTPUT_FRAME_selector}/"
-                                                "p[@id='name']").inner_text().replace("Name:", "")
-        output_email_ui = self.page.locator(f"//{DIV_OUTPUT_FRAME_selector}/"
-                                            "p[@id='email']").inner_text().replace("Email:", "")
-        output_current_address_ui = self.page.locator(f"//{DIV_OUTPUT_FRAME_selector}/"
-                                                      "p[@id='currentAddress']").inner_text().replace(
-            "Current Address :", "")
-        output_permanent_address_ui = (self.page.locator(f"//{DIV_OUTPUT_FRAME_selector}"
-                                                         "/p[@id='permanentAddress']").inner_text().replace(
-            "Permananet "
-            "Address :", ""))
-
-        initial_list = [FULL_NAME, EMAIL, CURRENT_ADDRESS, PERMANENT_ADDRESS]
-        output_list = [output_full_name_ui, output_email_ui, output_current_address_ui, output_permanent_address_ui]
-        same_data = lambda: initial_list == output_list
-        assert same_data(), "They are not the same"
-        print("They are the same !")
-
-    def test_verify_expand_collapse_buttons(self):
-        list_expected_expand = ["Home",
-                                "Desktop",
-                                "Notes",
-                                "Commands",
-                                "Documents",
-                                "WorkSpace",
-                                "React",
-                                "Angular",
-                                "Veu",
-                                "Office",
-                                "Public",
-                                "Private",
-                                "Classified",
-                                "General",
-                                "Downloads",
-                                "Word File.doc",
-                                "Excel File.doc"]
-        list_expected_collapse = ["Home"]
-        self.select_card_body("Elements")
-        self.select_element_button_left_panel("Check Box")
-
-        titles_expand = self.get_ui_titles_after_clicking_button("expand")
-
-        assert titles_expand == list_expected_expand, "There are not the same elements for EXPAND BUTTON"
-        print("\nThere are all the items !")
-
-        collapse_items_list_titles = self.get_ui_titles_after_clicking_button("collapse")
-        assert collapse_items_list_titles == list_expected_collapse, ("There are not"
-                                                                      " the same elements for COLLAPSE BUTTON")
-        print("The collapse button working fine !")
-
-    def test_verify_document_in_output_checked(self):
-        TITLES_MENU_TO_OUTPUT_MAPPED_DICT = {
-            'Word File.doc': 'wordFile',
-            'Excel File.doc': 'excelFile',
-        }
-        self.select_card_body("Elements")
-        self.select_element_button_left_panel("Check Box")
-        search_input_doc = input("Choose a path (Example : Document1>Document2>Document3... ) : ")
-        list_search_input_doc = search_input_doc.split(">")
-        is_checked = self.search_document_and_enable_last_title(list_search_input_doc)
-        assert is_checked, "I can not checked the box for last title"
-        last_title_formated = list_search_input_doc[-1].lower() if ".doc" not in list_search_input_doc[-1] else \
-            TITLES_MENU_TO_OUTPUT_MAPPED_DICT[list_search_input_doc[-1]]
-        assert last_title_formated in self.get_output_ui(), "The title was not found in the output"
-        # generator = self.format_input_for_output(search_input_doc)
-        # first_list_with_docs_formated = next(generator)
-        # second_list_with_docs_formated = next(generator)
-        # last_doc = second_list_with_docs_formated[-1]
-        # if last_doc[0].isupper():
-        #     assert last_doc.lower() in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
-        #         "The title was not found in the output"
-        # else:
-        #     assert last_doc in self.search_document_in_path(first_list_with_docs_formated, second_list_with_docs_formated, last_doc), \
-        #         "The title was not found in the output"
-        # print("The title was found in the output")
-
-    def test_verify_radio_buttons(self):
-        self.select_card_body("Elements")
-        self.select_element_button_left_panel("Radio Button")
-        RADIO_BUTTON_SELECTOR = "//div[contains(@class,'custom-control-inline')]/input[@id='{}']"
-        RADIO_BUTTON_OUTPUT_SELECTOR = "//p[@class='mt-3']/span[text() = '{}']"
-        yes_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('yesRadio'))
-
-        if yes_radio_button.is_visible():
-            yes_radio_button.check(force=True)
-        assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Yes")).is_visible(), "I can't click Yes button"
-
-        impressive_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('impressiveRadio'))
-        if impressive_radio_button.is_visible():
-            impressive_radio_button.check(force=True)
-        assert self.page.locator(RADIO_BUTTON_OUTPUT_SELECTOR.format("Impressive")).is_visible(), \
-            "I can't click Impressive button"
-
-        no_radio_button = self.page.locator(RADIO_BUTTON_SELECTOR.format('noRadio'))
-        assert no_radio_button.is_disabled(), " NO Button is enabled "
-
-    def test_verify_click_buttons(self):
-        self.select_card_body("Elements")
-        self.select_element_button_left_panel("Buttons")
-
-        self.page.locator("#doubleClickBtn").click(click_count=2)
-        output = self.page.locator("#doubleClickMessage").inner_text()
-        assert output == "You have done a double click", "Something went wrong with double click button"
-
-        self.page.locator("#rightClickBtn").click(button="right")
-        output = self.page.locator("#rightClickMessage").inner_text()
-        assert output == "You have done a right click", "Something went wrong with right click button"
-
-        self.page.locator("button[class='btn btn-primary']:text-is('Click Me')").click(button="left")
-        output = self.page.locator("#dynamicClickMessage").inner_text()
-        assert output == "You have done a dynamic click", "Something went wrong with left click button"
-
-    def test_dynamic_proprieties(self):
-        self.select_card_body("Elements")
-        self.select_element_button_left_panel("Dynamic Properties")
-
-        button_enable_after_locator = self.page.locator("#enableAfter")
-        button_color_change_locator = self.page.locator("#colorChange")
-        button_visible_after_locator = self.page.locator("#visibleAfter")
-
-        expect(button_enable_after_locator).to_be_enabled(timeout=5000)
-        button_enable_after_locator.click()
-        expect(button_visible_after_locator).to_be_visible(timeout=5000)
-        button_visible_after_locator.click()
-        expect(button_color_change_locator).to_have_css("color", "rgb(220, 53, 69)", timeout=5000)
-
-    def test_web_table_content_page(self):
-        self.select_card_body("Elements")
-        self.select_element_button_left_panel("Web Tables")
-
-        self.verify_content_in_table(EXPECTED_CONTENT_ROW)
-
-        self.add_row_in_table(EXPECTED_CONTENT)
-        self.verify_content_in_table(EXPECTED_CONTENT)
-
-        self.verify_row_edited(EXPECTED_CONTENT, EXPECTED_CONTENT_EDIT)
-        self.verify_content_in_table(EXPECTED_CONTENT_EDIT)
-
-        self.add_row_in_table(EXPECTED_CONTENT)
-        self.verify_row_deleted_from_table(EXPECTED_CONTENT)
+    def test_complete_practice_form(self):
+        self.select_card_body("Forms")
+        self.select_element_button_left_panel("Practice Form")
+        self.configure_proprieties(EXPECTED_CONTENT_FORM)
